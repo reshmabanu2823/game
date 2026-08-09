@@ -265,6 +265,12 @@
   let cameraShake = 0;
   let curveOffset = 0;
 
+  // --- ROAD CURVE / PATH SYSTEM ---
+  let roadCurveX = 0;         // current lateral centre of road in world space
+  let roadCurveRate = 0;      // drift speed (world units per frame)
+  let curveCooldown = 0;      // frames until next curve change
+  let cameraLeanX = 0;        // smoothed camera lateral follow
+
   let modeTimer = 0;
   let collectedOrbs = 0;
   let zeroDamageHit = false;
@@ -720,10 +726,10 @@
     }
 
     if (!mesh.position.y) mesh.position.y = 0.6;
-    mesh.position.x = x;
+    mesh.position.x = x + roadCurveX;
     mesh.position.z = z;
     scene.add(mesh);
-    obstacles.push({ mesh, isHunter, isDestructible, speedOffset: isHunter ? 1.5 : rand(-0.5, 0.5) });
+    obstacles.push({ mesh, isHunter, isDestructible, speedOffset: isHunter ? 1.5 : rand(-0.5, 0.5), laneX: x, spawnCurveX: roadCurveX });
   }
 
   function spawnPickup() {
@@ -739,9 +745,9 @@
 
     const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.2, metalness: 0.8 });
     const mesh = new THREE.Mesh(geom, mat);
-    mesh.position.set(x, 1.2, z);
+    mesh.position.set(x + roadCurveX, 1.2, z);
     scene.add(mesh);
-    pickups.push({ mesh, type });
+    pickups.push({ mesh, type, laneX: x, spawnCurveX: roadCurveX });
   }
 
   function onKeyDown(e) {
@@ -913,10 +919,26 @@
     document.getElementById('boost-meter-inner').style.width = `${boostAmount}%`;
     audio.updateEngine(currentSpeed / MAX_SPEED);
 
-    curveOffset = Math.sin(time * 0.015) * (activeBranchType === 'HAZARD' ? 14 : 8);
-    sunMesh.position.x = curveOffset * 1.5;
+    // --- ROAD CURVE STATE MACHINE ---
+    if (curveCooldown <= 0) {
+      // Pick a new curve direction and magnitude every 3-6 seconds (180-360 frames)
+      const maxRate = activeBranchType === 'HAZARD' ? 0.07 : 0.045;
+      roadCurveRate = (Math.random() - 0.5) * 2 * maxRate;
+      curveCooldown = Math.floor(180 + Math.random() * 180);
+    }
+    curveCooldown--;
 
-    const targetX = LANES[targetLane];
+    roadCurveX += roadCurveRate;
+    // Clamp curve so road doesn't drift fully off-screen; reverse direction near edges
+    if (roadCurveX > 10) { roadCurveX = 10; roadCurveRate = -Math.abs(roadCurveRate); curveCooldown = 60; }
+    if (roadCurveX < -10) { roadCurveX = -10; roadCurveRate = Math.abs(roadCurveRate); curveCooldown = 60; }
+
+    // Sun follows curve centre loosely
+    curveOffset = roadCurveX;
+    sunMesh.position.x = roadCurveX * 1.5;
+
+    // --- PLAYER POSITION (lane offset relative to curve centre) ---
+    const targetX = LANES[targetLane] + roadCurveX;
     const steerDelta = targetX - playerPosX;
 
     playerPosX += steerDelta * 0.2;
@@ -948,17 +970,28 @@
     camera.updateProjectionMatrix();
 
     if (cameraShake > 0 && cfg.shake) {
-      camera.position.x = rand(-cameraShake, cameraShake);
+      camera.position.x = roadCurveX * 0.35 + rand(-cameraShake, cameraShake);
       camera.position.y = 3.8 + rand(-cameraShake, cameraShake);
       cameraShake *= 0.85;
-    } else { camera.position.x = 0; camera.position.y = 3.8; }
+    } else {
+      // Camera leans laterally into the curve and rolls slightly
+      cameraLeanX += (roadCurveX * 0.35 - cameraLeanX) * 0.04;
+      camera.position.x = cameraLeanX;
+      camera.position.y = 3.8;
+      // Subtle roll into the bend (max ~3 degrees)
+      camera.rotation.z += (-roadCurveRate * 9 - camera.rotation.z) * 0.06;
+    }
 
     const scrollDelta = currentSpeed * 0.05;
+
+    // --- ROAD SEGMENTS — each gets an X offset that follows the curve with look-ahead ---
     roadSegments.forEach(seg => {
       seg.position.z += scrollDelta;
       if (seg.position.z > 20) seg.position.z -= ROAD_LENGTH;
-      const zFactor = Math.abs(seg.position.z) / ROAD_LENGTH;
-      seg.position.x = Math.sin(zFactor * Math.PI) * curveOffset;
+      // Segments deeper ahead lean further into the curve direction (look-ahead)
+      const depthAhead = Math.max(0, -seg.position.z); // positive = ahead of player
+      const lookAhead = roadCurveRate * depthAhead * 0.55;
+      seg.position.x = roadCurveX + lookAhead;
     });
 
     const spawnRate = activeBranchType === 'HAZARD' ? 0.05 : 0.035;
@@ -968,6 +1001,10 @@
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const obs = obstacles[i];
       obs.mesh.position.z += scrollDelta - obs.speedOffset;
+
+      // Track the road curve so obstacles stay on the road surface
+      const obsCurveDelta = roadCurveX - obs.spawnCurveX;
+      obs.mesh.position.x = obs.laneX + obsCurveDelta;
 
       if (obs.isHunter && obs.mesh.position.z < -20) {
         const diffX = playerCar.position.x - obs.mesh.position.x;
@@ -1016,6 +1053,8 @@
       const p = pickups[i];
       p.mesh.position.z += scrollDelta;
       p.mesh.rotation.y += 0.05;
+      // Track road curve so pickups stay on the road surface
+      p.mesh.position.x = p.laneX + (roadCurveX - p.spawnCurveX);
 
       const dz = Math.abs(p.mesh.position.z - playerCar.position.z);
       const dx = Math.abs(p.mesh.position.x - playerCar.position.x);
@@ -1126,6 +1165,7 @@
     score = 0; combo = 1; comboTimer = 0; time = 0; distanceMeters = 0;
     targetLane = 2; playerPosX = 0; shieldActive = false; boostAmount = 100;
     collectedOrbs = 0; zeroDamageHit = false; forkWarningTime = 0; activeBranchType = 'NORMAL';
+    roadCurveX = 0; roadCurveRate = 0; curveCooldown = 0; cameraLeanX = 0;
 
     currentRunTelemetry = [];
     crashBuffer = [];
