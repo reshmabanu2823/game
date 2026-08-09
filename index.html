@@ -294,9 +294,20 @@
             </label>
           </div>
 
+          <div class="setting-row">
+            <div>
+              <div style="font-weight:bold; color:#fff;">AI Rival Mode</div>
+              <div style="font-size:13px; color:var(--text-muted);">Race against rubber-banding AI competitor in place of personal ghost</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="settingRival">
+              <span class="slider"></span>
+            </label>
+          </div>
+
           <div class="setting-row" style="border:none; margin-top:20px; flex-direction:column; align-items:flex-start; gap:12px;">
             <div style="font-weight:bold; color:#ff0044;">Reset Campaign &amp; Game Data</div>
-            <div style="font-size:13px; color:var(--text-muted);">Clears saved high scores, campaign world map progress, and garage skins.</div>
+            <div style="font-size:13px; color:var(--text-muted);">Clears saved high scores, ghost recordings, campaign zones, and garage skins.</div>
             <button id="resetDataBtn" class="btn-secondary" style="border-color:#ff0044; color:#ff0044;">RESET ALL PROGRESS</button>
           </div>
         </div>
@@ -304,6 +315,9 @@
     </section>
 
   </main>
+
+  <!-- In-Race Overtake Callout Banner Overlay -->
+  <div id="overtake-banner">AHEAD OF GHOST!</div>
 
   <!-- In-Race Fork Warning Banner Overlay -->
   <div id="fork-banner">
@@ -365,6 +379,18 @@
       </div>
     </div>
 
+    <!-- Live Top-Right Ghost/Rival HUD Panel -->
+    <div id="ghost-hud-panel" style="display:none;">
+      <div class="ghost-hud-header">
+        <svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><polygon points="4 15 12 9 20 15 4 15"/></svg>
+        <span id="ghostHudLabel">VS GHOST</span>
+      </div>
+      <div id="ghostDeltaReadout" class="ghost-delta-readout ghost-delta-ahead">+0.0s ahead</div>
+      <div class="ghost-progress-outer">
+        <div id="ghostProgressFill" class="ghost-progress-fill" style="width:50%; background-color:var(--green);"></div>
+      </div>
+    </div>
+
     <div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%;">
       <div id="boost-container" class="hud-panel">
         <span class="hud-label">NITRO BOOST</span>
@@ -422,7 +448,10 @@
     <div class="card-panel" style="text-align:center;">
       <div style="font-family:'Orbitron'; font-size:14px; color:#799ec2;">FINAL SCORE</div>
       <div id="finalScore" style="font-family:'Orbitron'; font-size:42px; color:#00f3ff; text-shadow:0 0 15px #00f3ff; font-weight:900;">0</div>
-      <div style="font-family:'Orbitron'; font-size:12px; color:#ff00aa; margin-bottom:16px;">BEST HIGH SCORE: <span id="finalBest">0</span></div>
+      <div style="font-family:'Orbitron'; font-size:12px; color:#ff00aa; margin-bottom:12px;">BEST HIGH SCORE: <span id="finalBest">0</span></div>
+
+      <!-- Ghost / Rival Comparison Card Container -->
+      <div id="ghostComparisonCard" class="ghost-comparison-card" style="display:none;"></div>
 
       <div style="display:flex; gap:12px; justify-content:center;">
         <button id="retryBtn" class="cyber-btn">RETRY RUN</button>

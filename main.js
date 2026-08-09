@@ -1,4 +1,4 @@
-/* NEON HIGHWAY — Grounded Realistic 3D Racing Engine, Suspension Physics & Garage Showcase */
+/* NEON HIGHWAY — Grounded Realistic 3D Racing Engine, Ghost Car Replay & AI Rival System */
 
 (() => {
   // --- REALISTIC ZONE CONFIGURATIONS ---
@@ -90,6 +90,10 @@
     setLeaderboard: (data) => localStorage.setItem('neondrift_3d_leaderboard', JSON.stringify(data)),
     getSettings: () => JSON.parse(localStorage.getItem('neondrift_3d_settings') || '{"sound":true,"shake":true,"input":"keyboard"}'),
     setSettings: (cfg) => localStorage.setItem('neondrift_3d_settings', JSON.stringify(cfg)),
+    getGhost: (zone, mode) => JSON.parse(localStorage.getItem(`neondrift_ghost_${zone}_${mode}`) || 'null'),
+    setGhost: (zone, mode, data) => localStorage.setItem(`neondrift_ghost_${zone}_${mode}`, JSON.stringify(data)),
+    getRivalSetting: () => localStorage.getItem('neondrift_setting_rival') === 'true',
+    setRivalSetting: (v) => localStorage.setItem('neondrift_setting_rival', v),
     clearAll: () => {
       localStorage.removeItem('neondrift_3d_best');
       localStorage.removeItem('neondrift_3d_lastname');
@@ -99,6 +103,7 @@
       localStorage.removeItem('neondrift_3d_campaign');
       localStorage.removeItem('neondrift_3d_leaderboard');
       localStorage.removeItem('neondrift_3d_settings');
+      localStorage.removeItem('neondrift_setting_rival');
     }
   };
 
@@ -206,12 +211,22 @@
   let scene, camera, renderer;
   let roadGroup, sunMesh, sceneryGroup;
   let playerCar, playerBodyMesh, playerGlassMesh, playerTaillightMat, shieldBubbleMesh;
+  let ghostCarMesh = null;
+  let rivalCarMesh = null;
   let frontLeftWheel, frontRightWheel, rearLeftWheel, rearRightWheel;
   let headlightLeftLight, headlightRightLight;
 
   let obstacles = [];
   let pickups = [];
   let roadSegments = [];
+
+  // --- GHOST TELEMETRY & RIVAL GLOBALS ---
+  let currentRunTelemetry = [];
+  let activeGhostData = null;
+  let isRivalMode = false;
+  let rivalDistMeters = 0;
+  let rivalLane = 2;
+  let hasOvertakenGhost = false;
 
   let currentView = 'home';
   let isPlaying = false;
@@ -362,6 +377,8 @@
     buildEnvironment();
     buildRoad();
     buildPlayerCar();
+    buildGhostCar();
+    buildRivalCar();
 
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('keydown', onKeyDown);
@@ -389,7 +406,6 @@
     scene.add(sceneryGroup);
   }
 
-  // --- DYNAMIC REALISTIC SCENERY & LIGHTING SWAPPER ---
   function applyZoneTheme() {
     const activeZoneId = Storage.getSelectedZone();
     const cfg = ZONE_CONFIGS[activeZoneId] || ZONE_CONFIGS.district;
@@ -451,7 +467,6 @@
     }
   }
 
-  // --- GROUNDED REALISTIC ASPHALT ROAD & GUARDRAILS ---
   function buildRoad() {
     roadGroup = new THREE.Group();
     const numSegments = ROAD_LENGTH / SEGMENT_LENGTH;
@@ -503,7 +518,6 @@
     scene.add(roadGroup);
   }
 
-  // --- DETAILED REALISTIC SPORTS COUPE HERO CAR ---
   function buildPlayerCar() {
     playerCar = new THREE.Group();
 
@@ -592,6 +606,55 @@
     playerCar.position.set(0, 0, 0);
     scene.add(playerCar);
     applySelectedCarSkin();
+  }
+
+  // --- TRANSLUCENT 3D GHOST CAR MESH ---
+  function buildGhostCar() {
+    ghostCarMesh = new THREE.Group();
+    const gMat = new THREE.MeshStandardMaterial({
+      color: 0xe2e8f0,
+      roughness: 0.1,
+      metalness: 0.9,
+      transparent: true,
+      opacity: 0.42
+    });
+
+    const bGeom = new THREE.BoxGeometry(2.3, 0.65, 4.4);
+    const bMesh = new THREE.Mesh(bGeom, gMat);
+    bMesh.position.y = 0.55;
+    ghostCarMesh.add(bMesh);
+
+    const cGeom = new THREE.BoxGeometry(1.8, 0.55, 2.2);
+    const cMesh = new THREE.Mesh(cGeom, gMat);
+    cMesh.position.set(0, 1.1, -0.3);
+    ghostCarMesh.add(cMesh);
+
+    ghostCarMesh.visible = false;
+    scene.add(ghostCarMesh);
+  }
+
+  // --- SOLID AI RIVAL COMPETITOR CAR MESH ---
+  function buildRivalCar() {
+    rivalCarMesh = new THREE.Group();
+    const rMat = new THREE.MeshStandardMaterial({
+      color: 0x2563eb, // Bright Racing Blue Body
+      roughness: 0.3,
+      metalness: 0.8
+    });
+
+    const bGeom = new THREE.BoxGeometry(2.3, 0.65, 4.4);
+    const bMesh = new THREE.Mesh(bGeom, rMat);
+    bMesh.position.y = 0.55;
+    rivalCarMesh.add(bMesh);
+
+    const cGeom = new THREE.BoxGeometry(1.8, 0.55, 2.2);
+    const cMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2 });
+    const cMesh = new THREE.Mesh(cGeom, cMat);
+    cMesh.position.set(0, 1.1, -0.3);
+    rivalCarMesh.add(cMesh);
+
+    rivalCarMesh.visible = false;
+    scene.add(rivalCarMesh);
   }
 
   function applySelectedCarSkin(targetId = null) {
@@ -695,6 +758,89 @@
     const cfg = Storage.getSettings();
     const mode = Storage.getSelectedMode();
     const activeZoneId = Storage.getSelectedZone();
+
+    // Telemetry Sample Recording every 6 frames (100ms sample interval)
+    if (time % 6 === 0) {
+      currentRunTelemetry.push({
+        time,
+        posX: playerCar.position.x,
+        distanceMeters,
+        score: Math.floor(score)
+      });
+    }
+
+    // --- GHOST REPLAY & LIVE DELTA HUD LOGIC ---
+    if (activeGhostData && activeGhostData.samples && activeGhostData.samples.length > 0) {
+      const sampleIdx = Math.min(Math.floor(time / 6), activeGhostData.samples.length - 1);
+      const ghostFrame = activeGhostData.samples[sampleIdx];
+
+      if (ghostFrame && ghostCarMesh) {
+        ghostCarMesh.visible = true;
+        const relativeZ = -(ghostFrame.distanceMeters - distanceMeters) * 0.5;
+        ghostCarMesh.position.set(ghostFrame.posX, 0.4, Math.max(-120, Math.min(40, relativeZ)));
+
+        const deltaDist = distanceMeters - ghostFrame.distanceMeters;
+        const ghostHudPanel = document.getElementById('ghost-hud-panel');
+        const ghostDeltaReadout = document.getElementById('ghostDeltaReadout');
+        const ghostProgressFill = document.getElementById('ghostProgressFill');
+        const ghostHudLabel = document.getElementById('ghostHudLabel');
+
+        ghostHudPanel.style.display = 'flex';
+        ghostHudLabel.textContent = 'VS GHOST';
+
+        const secondsDelta = (deltaDist * 0.04).toFixed(1);
+        if (deltaDist >= 0) {
+          ghostDeltaReadout.textContent = `+${secondsDelta}s ahead`;
+          ghostDeltaReadout.className = 'ghost-delta-readout ghost-delta-ahead';
+          ghostProgressFill.style.backgroundColor = 'var(--green)';
+          ghostProgressFill.style.width = `${Math.min(100, 50 + deltaDist * 0.5)}%`;
+
+          if (!hasOvertakenGhost && deltaDist > 10) {
+            hasOvertakenGhost = true;
+            const banner = document.getElementById('overtake-banner');
+            banner.style.display = 'block';
+            setTimeout(() => { banner.style.display = 'none'; }, 1800);
+          }
+        } else {
+          ghostDeltaReadout.textContent = `${secondsDelta}s behind`;
+          ghostDeltaReadout.className = 'ghost-delta-readout ghost-delta-behind';
+          ghostProgressFill.style.backgroundColor = '#ff4757';
+          ghostProgressFill.style.width = `${Math.max(0, 50 + deltaDist * 0.5)}%`;
+        }
+      }
+    } else if (isRivalMode && rivalCarMesh) {
+      // --- RUBBER-BANDING AI RIVAL LOGIC ---
+      rivalCarMesh.visible = true;
+      const targetRivalDist = distanceMeters + Math.sin(time * 0.05) * 15;
+      rivalDistMeters += (targetRivalDist - rivalDistMeters) * 0.05;
+
+      const relativeZ = -(rivalDistMeters - distanceMeters) * 0.5;
+      rivalCarMesh.position.set(LANES[rivalLane], 0.4, Math.max(-120, Math.min(40, relativeZ)));
+
+      const deltaDist = distanceMeters - rivalDistMeters;
+      const ghostHudPanel = document.getElementById('ghost-hud-panel');
+      const ghostDeltaReadout = document.getElementById('ghostDeltaReadout');
+      const ghostProgressFill = document.getElementById('ghostProgressFill');
+      const ghostHudLabel = document.getElementById('ghostHudLabel');
+
+      ghostHudPanel.style.display = 'flex';
+      ghostHudLabel.textContent = 'VS RIVAL';
+
+      const secondsDelta = (deltaDist * 0.04).toFixed(1);
+      if (deltaDist >= 0) {
+        ghostDeltaReadout.textContent = `+${secondsDelta}s ahead`;
+        ghostDeltaReadout.className = 'ghost-delta-readout ghost-delta-ahead';
+        ghostProgressFill.style.backgroundColor = 'var(--green)';
+        ghostProgressFill.style.width = `${Math.min(100, 50 + deltaDist * 0.5)}%`;
+      } else {
+        ghostDeltaReadout.textContent = `${secondsDelta}s behind`;
+        ghostDeltaReadout.className = 'ghost-delta-readout ghost-delta-behind';
+        ghostProgressFill.style.backgroundColor = '#ff4757';
+        ghostProgressFill.style.width = `${Math.max(0, 50 + deltaDist * 0.5)}%`;
+      }
+    } else {
+      document.getElementById('ghost-hud-panel').style.display = 'none';
+    }
 
     if (activeZoneId === 'rain' && Math.random() < 0.005) {
       scene.background.setHex(0x334155);
@@ -886,7 +1032,7 @@
       updateGame();
     } else {
       time += 0.5;
-      if (playerCar) playerCar.rotation.y += 0.015; // Smooth 360 Turntable rotation in Garage/Home view
+      if (playerCar) playerCar.rotation.y += 0.015;
       roadSegments.forEach(seg => {
         seg.position.z += 1.5;
         if (seg.position.z > 20) seg.position.z -= ROAD_LENGTH;
@@ -906,9 +1052,22 @@
     targetLane = 2; playerPosX = 0; shieldActive = false; boostAmount = 100;
     collectedOrbs = 0; zeroDamageHit = false; forkWarningTime = 0; activeBranchType = 'NORMAL';
 
+    currentRunTelemetry = [];
+    hasOvertakenGhost = false;
+    const currentZone = Storage.getSelectedZone();
+    const currentMode = Storage.getSelectedMode();
+    activeGhostData = Storage.getGhost(currentZone, currentMode);
+    isRivalMode = Storage.getRivalSetting();
+    rivalDistMeters = 0;
+
     shieldBubbleMesh.visible = false;
+    if (ghostCarMesh) ghostCarMesh.visible = false;
+    if (rivalCarMesh) rivalCarMesh.visible = false;
+
     document.getElementById('shield-bar-container').classList.remove('active');
     document.getElementById('fork-banner').style.display = 'none';
+    document.getElementById('overtake-banner').style.display = 'none';
+    document.getElementById('ghost-hud-panel').style.display = 'none';
 
     obstacles.forEach(o => scene.remove(o.mesh));
     pickups.forEach(p => scene.remove(p.mesh));
@@ -929,9 +1088,21 @@
 
     if (finalScore > prevBest) Storage.setBestScore(finalScore);
 
+    const currentZone = Storage.getSelectedZone();
+    const currentMode = Storage.getSelectedMode();
+
+    // Check & Save New Ghost Telemetry Baseline
+    let isNewGhostBest = false;
+    if (!activeGhostData || finalScore > (activeGhostData.score || 0)) {
+      isNewGhostBest = true;
+      Storage.setGhost(currentZone, currentMode, {
+        score: finalScore,
+        samples: currentRunTelemetry
+      });
+    }
+
     if (success) {
       const camp = Storage.getCampaign();
-      const currentZone = Storage.getSelectedZone();
       if (!camp.completed.includes(currentZone)) camp.completed.push(currentZone);
       Storage.setCampaign(camp);
     }
@@ -939,6 +1110,31 @@
     document.getElementById('gameOverTitle').textContent = success ? 'VICTORY!' : 'RUN CRASHED';
     document.getElementById('finalScore').textContent = finalScore;
     document.getElementById('finalBest').textContent = Storage.getBestScore();
+
+    // Populate End-of-Run Ghost / Rival Comparison Card
+    const compCard = document.getElementById('ghostComparisonCard');
+    if (activeGhostData || isNewGhostBest) {
+      const ghostBestScore = activeGhostData ? activeGhostData.score : finalScore;
+      const delta = finalScore - ghostBestScore;
+
+      compCard.style.display = 'block';
+      compCard.innerHTML = `
+        <div class="comp-row">
+          <span style="color:var(--text-muted); font-family:'Orbitron';">YOUR SCORE</span>
+          <span style="font-family:'Orbitron'; font-weight:bold; color:#fff;">${finalScore.toLocaleString()}</span>
+        </div>
+        <div class="comp-row">
+          <span style="color:var(--text-muted); font-family:'Orbitron';">GHOST BEST</span>
+          <span style="font-family:'Orbitron'; font-weight:bold; color:var(--cyan);">${ghostBestScore.toLocaleString()}</span>
+        </div>
+        <div class="comp-row" style="margin-top:4px;">
+          <span style="color:var(--text-muted); font-family:'Orbitron';">RESULT</span>
+          <span style="font-family:'Orbitron'; font-weight:bold; color:${delta >= 0 ? 'var(--green)' : '#ff4757'};">
+            ${delta >= 0 ? `+${delta.toLocaleString()} — NEW BEST!` : `${delta.toLocaleString()}`}
+          </span>
+        </div>
+      `;
+    } else { compCard.style.display = 'none'; }
 
     const lb = Storage.getLeaderboard();
     if (lb.length < 10 || finalScore > (lb[lb.length - 1]?.score || 0)) {
@@ -1034,7 +1230,6 @@
     const isPreviewUnlocked = bestScore >= previewCar.reqScore;
     const isPreviewEquipped = activeCar === previewCar.id;
 
-    // Render Side Showcase Panel
     showcase.innerHTML = `
       <div class="turntable-stage">
         <div style="font-family:'Orbitron'; font-size:11px; color:var(--text-muted); position:absolute; top:12px; left:14px; letter-spacing:2px;">3D SIDE PREVIEW</div>
@@ -1078,7 +1273,6 @@
       });
     }
 
-    // Render Car Selector Grid
     grid.innerHTML = CAR_SKINS.map(skin => {
       const isUnlocked = bestScore >= skin.reqScore;
       const isEquipped = activeCar === skin.id;
@@ -1129,6 +1323,7 @@
     const cfg = Storage.getSettings();
     document.getElementById('settingSound').checked = cfg.sound;
     document.getElementById('settingShake').checked = cfg.shake;
+    document.getElementById('settingRival').checked = Storage.getRivalSetting();
 
     document.getElementById('settingSound').onchange = (e) => {
       cfg.sound = e.target.checked;
@@ -1139,6 +1334,10 @@
     document.getElementById('settingShake').onchange = (e) => {
       cfg.shake = e.target.checked;
       Storage.setSettings(cfg);
+    };
+
+    document.getElementById('settingRival').onchange = (e) => {
+      Storage.setRivalSetting(e.target.checked);
     };
 
     const resetBtn = document.getElementById('resetDataBtn');
