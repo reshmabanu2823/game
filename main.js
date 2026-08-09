@@ -72,8 +72,6 @@
     { id: 'titan', name: 'Emerald Stealth', reqScore: 20000, bodyColor: 0x05331a, specularColor: 0x00e676, desc: 'Unlocked at 20,000 pts. Emerald carbon weave.' }
   ];
 
-  let previewCarId = Storage.getSelectedCar();
-
   // --- LOCAL STORAGE MANAGER ---
   const Storage = {
     getBestScore: () => Number(localStorage.getItem('neondrift_3d_best') || 0),
@@ -103,6 +101,8 @@
       localStorage.removeItem('neondrift_3d_settings');
     }
   };
+
+  let previewCarId = Storage.getSelectedCar();
 
   // --- AUDIO SYNTHESIZER ---
   class SoundSynth {
