@@ -345,6 +345,7 @@
     const uiContainer = document.getElementById('ui-container');
     if (viewId === 'play') {
       uiContainer.style.display = 'flex';
+      renderPowerTray();
       updatePlaybackControlsHUD();
       if (!isPlaying && !isReplaying) startRace();
     } else {
@@ -386,29 +387,29 @@
     const btnHudResume = document.getElementById('btn-hud-resume');
 
     if (!isPlaying) {
-      btnTopPlay.style.display = 'inline-flex';
-      btnTopPause.style.display = 'none';
-      btnTopResume.style.display = 'none';
+      if (btnTopPlay) btnTopPlay.style.display = 'inline-flex';
+      if (btnTopPause) btnTopPause.style.display = 'none';
+      if (btnTopResume) btnTopResume.style.display = 'none';
 
-      btnHudPlay.style.display = 'inline-flex';
-      btnHudPause.style.display = 'none';
-      btnHudResume.style.display = 'none';
+      if (btnHudPlay) btnHudPlay.style.display = 'inline-flex';
+      if (btnHudPause) btnHudPause.style.display = 'none';
+      if (btnHudResume) btnHudResume.style.display = 'none';
     } else if (isPaused) {
-      btnTopPlay.style.display = 'none';
-      btnTopPause.style.display = 'none';
-      btnTopResume.style.display = 'inline-flex';
+      if (btnTopPlay) btnTopPlay.style.display = 'none';
+      if (btnTopPause) btnTopPause.style.display = 'none';
+      if (btnTopResume) btnTopResume.style.display = 'inline-flex';
 
-      btnHudPlay.style.display = 'none';
-      btnHudPause.style.display = 'none';
-      btnHudResume.style.display = 'inline-flex';
+      if (btnHudPlay) btnHudPlay.style.display = 'none';
+      if (btnHudPause) btnHudPause.style.display = 'none';
+      if (btnHudResume) btnHudResume.style.display = 'inline-flex';
     } else {
-      btnTopPlay.style.display = 'none';
-      btnTopPause.style.display = 'inline-flex';
-      btnTopResume.style.display = 'none';
+      if (btnTopPlay) btnTopPlay.style.display = 'none';
+      if (btnTopPause) btnTopPause.style.display = 'inline-flex';
+      if (btnTopResume) btnTopResume.style.display = 'none';
 
-      btnHudPlay.style.display = 'none';
-      btnHudPause.style.display = 'inline-flex';
-      btnHudResume.style.display = 'none';
+      if (btnHudPlay) btnHudPlay.style.display = 'none';
+      if (btnHudPause) btnHudPause.style.display = 'inline-flex';
+      if (btnHudResume) btnHudResume.style.display = 'none';
     }
   }
 
@@ -446,18 +447,17 @@
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
 
-    document.getElementById('btn-top-play').addEventListener('click', () => { window.location.hash = '#play'; startRace(); });
-    document.getElementById('btn-top-pause').addEventListener('click', togglePause);
-    document.getElementById('btn-top-resume').addEventListener('click', togglePause);
+    document.getElementById('btn-top-play')?.addEventListener('click', () => { window.location.hash = '#play'; startRace(); });
+    document.getElementById('btn-top-pause')?.addEventListener('click', togglePause);
+    document.getElementById('btn-top-resume')?.addEventListener('click', togglePause);
 
-    document.getElementById('btn-hud-play').addEventListener('click', startRace);
-    document.getElementById('btn-hud-pause').addEventListener('click', togglePause);
-    document.getElementById('btn-hud-resume').addEventListener('click', togglePause);
+    // Initial render of empty power slots
+    renderPowerTray();
 
     // Replay Modal Controls
-    document.getElementById('watchReplayBtn').addEventListener('click', startCrashReplay);
-    document.getElementById('btnReplayAgain').addEventListener('click', startCrashReplay);
-    document.getElementById('btnCloseReplay').addEventListener('click', closeCrashReplay);
+    document.getElementById('watchReplayBtn')?.addEventListener('click', startCrashReplay);
+    document.getElementById('btnReplayAgain')?.addEventListener('click', startCrashReplay);
+    document.getElementById('btnCloseReplay')?.addEventListener('click', closeCrashReplay);
 
     setupHighScoreModalHandlers();
   }

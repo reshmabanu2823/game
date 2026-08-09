@@ -375,28 +375,12 @@
         </div>
       </div>
 
-      <!-- Playback Controls Cluster in HUD Panel -->
       <div class="hud-panel" style="gap:12px;">
         <div id="combo-display"></div>
         <div id="mode-hud-meter" class="hud-mode-meter">ZONE: NEON DISTRICT</div>
         <div id="shield-bar-container">
           <svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
           SHIELD ACTIVE
-        </div>
-
-        <div id="hud-playback-controls" style="display:flex; gap:8px; pointer-events:auto;">
-          <button id="btn-hud-play" class="playback-btn-top btn-top-play">
-            <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            PLAY
-          </button>
-          <button id="btn-hud-pause" class="playback-btn-top btn-top-pause" style="display:none;">
-            <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
-            PAUSE
-          </button>
-          <button id="btn-hud-resume" class="playback-btn-top btn-top-resume" style="display:none;">
-            <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-            RESUME
-          </button>
         </div>
       </div>
     </div>
@@ -413,7 +397,8 @@
       </div>
     </div>
 
-    <div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%;">
+    <!-- Bottom HUD Bar -->
+    <div id="hud-bottom">
       <div id="boost-container" class="hud-panel">
         <span class="hud-label">NITRO BOOST</span>
         <div class="meter-outer">
@@ -421,22 +406,24 @@
         </div>
       </div>
 
-      <div id="lane-hud">
-        <div class="lane-dot"></div>
-        <div class="lane-dot"></div>
-        <div class="lane-dot active"></div>
-        <div class="lane-dot"></div>
-        <div class="lane-dot"></div>
-      </div>
-
-      <!-- Power Inventory Tray -->
-      <div id="power-tray-container">
-        <div style="font-family:'Orbitron'; font-size:9px; color:#556; letter-spacing:1px; margin-bottom:4px; text-align:center;">POWERS [Q / W / E]</div>
+      <!-- Power Inventory Tray Panel -->
+      <div id="power-tray-container" class="hud-panel">
+        <div class="power-tray-header">POWER INVENTORY</div>
         <div id="power-tray"></div>
       </div>
 
-      <div id="hint-bar">
-        [A/D] STEER &middot; [SPACE] NITRO &middot; [Q/W/E] USE POWER &middot; [P] PAUSE
+      <div style="display:flex; flex-direction:column; align-items:flex-end; gap:8px;">
+        <div id="lane-hud">
+          <div class="lane-dot"></div>
+          <div class="lane-dot"></div>
+          <div class="lane-dot active"></div>
+          <div class="lane-dot"></div>
+          <div class="lane-dot"></div>
+        </div>
+
+        <div id="hint-bar">
+          [A/D] STEER &middot; [SPACE] NITRO &middot; [Q/W/E] POWER &middot; [P] PAUSE
+        </div>
       </div>
     </div>
   </div>
