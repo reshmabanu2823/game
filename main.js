@@ -1,12 +1,12 @@
-/* NEON HIGHWAY — Modular Swappable Zone Engine, Custom Hazards & Audio Synth */
+/* NEON HIGHWAY — Modular Swappable Zone Engine, SVG Icons, Custom Hazards & Audio Synth */
 
 (() => {
-  // --- MODULAR ZONE CONFIGURATIONS ---
+  // --- MODULAR ZONE CONFIGURATIONS WITH SVG ICONS ---
   const ZONE_CONFIGS = {
     district: {
       id: 'district',
       name: 'Neon District',
-      icon: '🌃',
+      icon: `<svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><path d="M3 21h18M5 21V7l6-3v17M11 21V11l8-4v14"/></svg>`,
       difficulty: 'Normal',
       reqScore: 0,
       fogColor: 0x0c061a,
@@ -20,7 +20,7 @@
     desert: {
       id: 'desert',
       name: 'Desert Overpass',
-      icon: '🌅',
+      icon: `<svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`,
       difficulty: 'Fast',
       reqScore: 2000,
       fogColor: 0x1e0802,
@@ -34,7 +34,7 @@
     rain: {
       id: 'rain',
       name: 'Rain City',
-      icon: '🌧️',
+      icon: `<svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="#00aaff"><path d="M16 13a4 4 0 0 0-7.2-2.4A3.5 3.5 0 0 0 4 14a3 3 0 0 0 3 3h10a3 3 0 0 0 2.5-4.7A4 4 0 0 0 16 13zM8 21l-1 2M12 21l-1 2M16 21l-1 2"/></svg>`,
       difficulty: 'Hard',
       reqScore: 6000,
       fogColor: 0x150020,
@@ -48,7 +48,7 @@
     orbital: {
       id: 'orbital',
       name: 'Orbital Ring',
-      icon: '🌌',
+      icon: `<svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="#b700ff"><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="11" ry="4" transform="rotate(-30 12 12)"/></svg>`,
       difficulty: 'Extreme',
       reqScore: 12000,
       fogColor: 0x001525,
@@ -207,7 +207,6 @@
   let obstacles = [];
   let pickups = [];
   let roadSegments = [];
-  let weatherParticles = [];
 
   let currentView = 'home';
   let isPlaying = false;
@@ -290,7 +289,7 @@
     const best = Storage.getBestScore();
     const ribbon = document.getElementById('homeBestRibbon');
     if (best > 0) {
-      ribbon.innerHTML = `🏆 YOUR PERSONAL BEST HIGH SCORE: <strong>${best.toLocaleString()} PTS</strong>`;
+      ribbon.innerHTML = `<svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17M14 14.66V17M18 4H6v7a6 6 0 0 0 12 0V4z"/></svg> YOUR PERSONAL BEST HIGH SCORE: <strong>${best.toLocaleString()} PTS</strong>`;
       ribbon.style.display = 'inline-flex';
     } else { ribbon.style.display = 'none'; }
   }
@@ -393,11 +392,9 @@
     const activeZoneId = Storage.getSelectedZone();
     const cfg = ZONE_CONFIGS[activeZoneId] || ZONE_CONFIGS.district;
 
-    // Apply Fog & Sun color
     if (scene) scene.fog.color.setHex(cfg.fogColor);
     if (sunMesh) sunMesh.material.color.setHex(cfg.sunColor);
 
-    // Dynamic HUD Skin Class Reskinning
     const uiContainer = document.getElementById('ui-container');
     if (uiContainer) {
       uiContainer.className = '';
@@ -405,11 +402,9 @@
       setTimeout(() => uiContainer.classList.remove('zone-flicker'), 400);
     }
 
-    // Rebuild 3D Scenery tailored to Zone
     while (sceneryGroup.children.length > 0) sceneryGroup.remove(sceneryGroup.children[0]);
 
     if (cfg.id === 'district') {
-      // Skyscraper Silhouettes
       for (let i = -10; i <= 10; i++) {
         if (Math.abs(i) < 2) continue;
         const bGeom = new THREE.BoxGeometry(rand(14, 22), rand(40, 90), rand(14, 22));
@@ -419,7 +414,6 @@
         sceneryGroup.add(b);
       }
     } else if (cfg.id === 'desert') {
-      // Sun-scorched Rock Silhouettes
       for (let i = -10; i <= 10; i++) {
         if (Math.abs(i) < 2) continue;
         const rGeom = new THREE.DodecahedronGeometry(rand(12, 24));
@@ -429,7 +423,6 @@
         sceneryGroup.add(r);
       }
     } else if (cfg.id === 'rain') {
-      // Rain City Twilight Towers
       for (let i = -10; i <= 10; i++) {
         if (Math.abs(i) < 2) continue;
         const rGeom = new THREE.BoxGeometry(rand(12, 18), rand(35, 75), rand(12, 18));
@@ -439,7 +432,6 @@
         sceneryGroup.add(r);
       }
     } else if (cfg.id === 'orbital') {
-      // Orbital Ring Conduits
       const ringGeom = new THREE.TorusGeometry(120, 6, 16, 64);
       const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true });
       const ring = new THREE.Mesh(ringGeom, ringMat);
@@ -527,7 +519,6 @@
     if (playerTailMesh) playerTailMesh.material.color.setHex(skin.tailColor);
   }
 
-  // --- ZONE-SPECIFIC HAZARDS SPAWNER ---
   function spawnObstacle() {
     const laneIdx = Math.floor(rand(0, LANES.length));
     const x = LANES[laneIdx];
@@ -542,18 +533,15 @@
 
     let mesh;
     if (cfg.id === 'desert' && Math.random() < 0.3) {
-      // Tumbleweed rolling hazard
       const tGeom = new THREE.DodecahedronGeometry(1.2);
       const tMat = new THREE.MeshBasicMaterial({ color: 0xffea00, wireframe: true });
       mesh = new THREE.Mesh(tGeom, tMat);
     } else if (cfg.id === 'rain' && Math.random() < 0.25) {
-      // Hydroplane puddle hazard
       const pGeom = new THREE.CircleGeometry(2.2, 16);
       const pMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, side: THREE.DoubleSide });
       mesh = new THREE.Mesh(pGeom, pMat);
       mesh.rotation.x = -Math.PI / 2;
     } else if (cfg.id === 'orbital' && Math.random() < 0.3) {
-      // Zero-G floating space debris
       const dGeom = new THREE.IcosahedronGeometry(1.4);
       const dMat = new THREE.MeshBasicMaterial({ color: 0xb700ff, wireframe: true });
       mesh = new THREE.Mesh(dGeom, dMat);
@@ -632,7 +620,6 @@
     const mode = Storage.getSelectedMode();
     const activeZoneId = Storage.getSelectedZone();
 
-    // Occasional Rain City Lightning Flashes
     if (activeZoneId === 'rain' && Math.random() < 0.005) {
       scene.background.setHex(0x354060);
       setTimeout(() => scene.background.setHex(0x04040a), 60);
@@ -789,10 +776,10 @@
     document.getElementById('combo-display').textContent = combo > 1 ? `COMBO x${combo}` : '';
 
     const modeHud = document.getElementById('mode-hud-meter');
-    if (mode === 'time') modeHud.textContent = `⏱️ ${(time / 60).toFixed(1)}s / 2000m`;
-    else if (mode === 'zerodmg') modeHud.textContent = `🛡️ NO HIT: ${distanceMeters}m / 1500m`;
-    else if (mode === 'collector') modeHud.textContent = `💎 ORBS: ${collectedOrbs} / 15`;
-    else modeHud.textContent = `ZONE: ${Storage.getSelectedZone().toUpperCase()}`;
+    if (mode === 'time') modeHud.innerHTML = `<svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${(time / 60).toFixed(1)}s / 2000m`;
+    else if (mode === 'zerodmg') modeHud.innerHTML = `<svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> NO HIT: ${distanceMeters}m / 1500m`;
+    else if (mode === 'collector') modeHud.innerHTML = `<svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><polygon points="12 2 22 8.5 12 22 2 8.5 12 2"/></svg> ORBS: ${collectedOrbs} / 15`;
+    else modeHud.innerHTML = `<svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><rect x="3" y="3" width="18" height="18" rx="2"/></svg> ZONE: ${Storage.getSelectedZone().toUpperCase()}`;
 
     document.querySelectorAll('.lane-dot').forEach((dot, idx) => {
       dot.classList.toggle('active', idx === targetLane);

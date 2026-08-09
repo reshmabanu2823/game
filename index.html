@@ -28,9 +28,18 @@
     <!-- Top Playback Controls Cluster in Header -->
     <div style="display:flex; align-items:center; gap:12px;">
       <div id="nav-playback-controls" style="display:flex; gap:8px;">
-        <button id="btn-top-play" class="playback-btn-top btn-top-play">▶ START RACE</button>
-        <button id="btn-top-pause" class="playback-btn-top btn-top-pause" style="display:none;">⏸ PAUSE</button>
-        <button id="btn-top-resume" class="playback-btn-top btn-top-resume" style="display:none;">▶ RESUME</button>
+        <button id="btn-top-play" class="playback-btn-top btn-top-play">
+          <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          START RACE
+        </button>
+        <button id="btn-top-pause" class="playback-btn-top btn-top-pause" style="display:none;">
+          <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+          PAUSE
+        </button>
+        <button id="btn-top-resume" class="playback-btn-top btn-top-resume" style="display:none;">
+          <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          RESUME
+        </button>
       </div>
     </div>
   </header>
@@ -49,29 +58,46 @@
         <p class="hero-tagline">3D SYNTHWAVE CAMPAIGN &amp; BRANCHING PATHS</p>
 
         <div class="hero-actions">
-          <a href="#map" class="btn-primary"><span>🗺️ WORLD MAP CAMPAIGN</span></a>
-          <a href="#play" class="btn-secondary">QUICK RACE</a>
-          <a href="#garage" class="btn-secondary">GARAGE</a>
+          <a href="#map" class="btn-primary">
+            <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            <span>WORLD MAP CAMPAIGN</span>
+          </a>
+          <a href="#play" class="btn-secondary">
+            <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            QUICK RACE
+          </a>
+          <a href="#garage" class="btn-secondary">
+            <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20"/></svg>
+            GARAGE
+          </a>
         </div>
 
         <div class="feature-grid">
           <div class="feature-card">
-            <div class="feature-icon">🌿</div>
+            <div class="feature-icon">
+              <svg class="cyber-icon-lg" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><path d="M5 17h14M5 12h14M7 8h10l2 4H5l2-4z"/></svg>
+            </div>
             <div class="feature-title">Branching Paths</div>
             <div class="feature-desc">Steer into decision forks during races to choose between Shortcuts, High-Risk Hazard Lanes, or Highways.</div>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">🗺️</div>
+            <div class="feature-icon">
+              <svg class="cyber-icon-lg" viewBox="0 0 24 24" fill="none" stroke="var(--green)"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+            </div>
             <div class="feature-title">World Map Campaign</div>
             <div class="feature-desc">Unlock 4 distinct zones (*Neon District, Desert Overpass, Rain City, Orbital Ring*) on the circuit map.</div>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">🎯</div>
+            <div class="feature-icon">
+              <svg class="cyber-icon-lg" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+            </div>
             <div class="feature-title">5 Challenge Modes</div>
             <div class="feature-desc">Master Time Trials, Zero Damage runs, Orb Collector trials, and dense Hunter Gauntlets.</div>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">🎨</div>
+            <div class="feature-icon">
+              <svg class="cyber-icon-lg" viewBox="0 0 24 24" fill="none" stroke="var(--magenta)"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 0 0 20"/></svg>
+            </div>
             <div class="feature-title">Unlock Car Skins</div>
             <div class="feature-desc">Complete zone challenges to earn points and equip high-tech neon vehicles in the Garage.</div>
           </div>
@@ -122,21 +148,27 @@
           <h3 style="font-family:'Orbitron'; color:var(--cyan); margin-bottom:16px;">DRIVING CONTROLS</h3>
           <div class="controls-flex">
             <div class="preview-card">
-              <div class="preview-badge" style="background:rgba(0,243,255,0.1); border:1px solid var(--cyan);">🎮</div>
+              <div class="preview-badge" style="background:rgba(0,243,255,0.1); border:1px solid var(--cyan);">
+                <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><rect x="2" y="6" width="20" height="12" rx="6"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>
+              </div>
               <div>
                 <div style="font-weight:bold; color:#fff;">Lane Steer</div>
                 <div style="font-size:13px; color:var(--text-muted);">Use <kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd> keys</div>
               </div>
             </div>
             <div class="preview-card">
-              <div class="preview-badge" style="background:rgba(255,230,0,0.1); border:1px solid var(--yellow);">⚡</div>
+              <div class="preview-badge" style="background:rgba(255,230,0,0.1); border:1px solid var(--yellow);">
+                <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              </div>
               <div>
                 <div style="font-weight:bold; color:#fff;">Nitro Boost</div>
                 <div style="font-size:13px; color:var(--text-muted);">Hold <kbd>SPACE BAR</kbd> for extra speed</div>
               </div>
             </div>
             <div class="preview-card">
-              <div class="preview-badge" style="background:rgba(255,0,170,0.1); border:1px solid var(--magenta);">⏸️</div>
+              <div class="preview-badge" style="background:rgba(255,0,170,0.1); border:1px solid var(--magenta);">
+                <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="var(--magenta)"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+              </div>
               <div>
                 <div style="font-weight:bold; color:#fff;">Pause Game</div>
                 <div style="font-size:13px; color:var(--text-muted);">Press <kbd>P</kbd> or <kbd>ESC</kbd> during race</div>
@@ -150,21 +182,27 @@
           <p style="font-size:14px; color:var(--text-muted); line-height:1.6;">During runs, a warning banner will announce an upcoming road split. Move your vehicle into position before the timer expires:</p>
           <div class="controls-flex" style="margin-top:14px;">
             <div class="preview-card">
-              <div class="preview-badge" style="background:rgba(0,255,170,0.2); border:1px solid var(--green);">🌿</div>
+              <div class="preview-badge" style="background:rgba(0,255,170,0.2); border:1px solid var(--green);">
+                <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)"><polyline points="9 18 15 12 9 6"/></svg>
+              </div>
               <div>
                 <div style="font-weight:bold; color:#fff;">Left Lanes: Shortcut</div>
                 <div style="font-size:13px; color:var(--text-muted);">Clearer path with high orb density.</div>
               </div>
             </div>
             <div class="preview-card">
-              <div class="preview-badge" style="background:rgba(0,243,255,0.2); border:1px solid var(--cyan);">🛣️</div>
+              <div class="preview-badge" style="background:rgba(0,243,255,0.2); border:1px solid var(--cyan);">
+                <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="12" y1="7" x2="12" y2="9"/><line x1="12" y1="13" x2="12" y2="15"/></svg>
+              </div>
               <div>
                 <div style="font-weight:bold; color:#fff;">Center Lane: Highway</div>
                 <div style="font-size:13px; color:var(--text-muted);">Standard road layout.</div>
               </div>
             </div>
             <div class="preview-card">
-              <div class="preview-badge" style="background:rgba(255,0,68,0.2); border:1px solid #ff0044;">⚠️</div>
+              <div class="preview-badge" style="background:rgba(255,0,68,0.2); border:1px solid #ff0044;">
+                <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="#ff0044"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </div>
               <div>
                 <div style="font-weight:bold; color:#fff;">Right Lanes: Hazard Path</div>
                 <div style="font-size:13px; color:var(--text-muted);">Heavy traffic density &amp; homing hunters with maximum score rewards.</div>
@@ -260,7 +298,7 @@
 
   <!-- In-Race Fork Warning Banner Overlay -->
   <div id="fork-banner">
-    ⚠️ FORK AHEAD — CHOOSE YOUR LANE ⚠️
+    FORK AHEAD — CHOOSE YOUR LANE
     <div class="fork-options">
       <span class="fork-opt" style="border-left:3px solid var(--green);">LEFT: SHORTCUT</span>
       <span class="fork-opt" style="border-left:3px solid var(--cyan);">CENTER: HIGHWAY</span>
@@ -296,12 +334,24 @@
       <div class="hud-panel" style="gap:12px;">
         <div id="combo-display"></div>
         <div id="mode-hud-meter" class="hud-mode-meter">ZONE: NEON DISTRICT</div>
-        <div id="shield-bar-container">🛡️ SHIELD ACTIVE</div>
+        <div id="shield-bar-container">
+          <svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          SHIELD ACTIVE
+        </div>
 
         <div id="hud-playback-controls" style="display:flex; gap:8px; pointer-events:auto;">
-          <button id="btn-hud-play" class="playback-btn-top btn-top-play">▶ PLAY</button>
-          <button id="btn-hud-pause" class="playback-btn-top btn-top-pause" style="display:none;">⏸ PAUSE</button>
-          <button id="btn-hud-resume" class="playback-btn-top btn-top-resume" style="display:none;">▶ RESUME</button>
+          <button id="btn-hud-play" class="playback-btn-top btn-top-play">
+            <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            PLAY
+          </button>
+          <button id="btn-hud-pause" class="playback-btn-top btn-top-pause" style="display:none;">
+            <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg>
+            PAUSE
+          </button>
+          <button id="btn-hud-resume" class="playback-btn-top btn-top-resume" style="display:none;">
+            <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            RESUME
+          </button>
         </div>
       </div>
     </div>
