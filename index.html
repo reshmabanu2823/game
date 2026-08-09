@@ -71,7 +71,7 @@
         </div>
 
         <footer>
-          Neon Highway Campaign Edition v3.0 · Built with Three.js &amp; WebGL
+          Neon Highway Campaign Edition v3.5 · Built with Three.js &amp; WebGL
         </footer>
       </div>
     </section>
@@ -96,9 +96,7 @@
             <line x1="40%" y1="68%" x2="65%" y2="32%" stroke="#00f3ff" stroke-width="2" stroke-dasharray="4" />
             <line x1="65%" y1="32%" x2="90%" y2="68%" stroke="#00f3ff" stroke-width="2" stroke-dasharray="4" />
           </svg>
-          <div id="worldMapNodes">
-            <!-- Rendered in main.js -->
-          </div>
+          <div id="worldMapNodes"></div>
         </div>
 
         <div style="text-align:center; margin-top:28px;">
@@ -287,10 +285,17 @@
         </div>
       </div>
 
-      <div class="hud-panel" style="flex-direction:column; align-items:flex-end;">
+      <!-- Playback Controls Cluster (Top-Right HUD) -->
+      <div class="hud-panel" style="gap:12px;">
         <div id="combo-display"></div>
         <div id="mode-hud-meter" class="hud-mode-meter">ZONE: NEON DISTRICT</div>
         <div id="shield-bar-container">🛡️ SHIELD ACTIVE</div>
+
+        <div id="hud-playback-controls">
+          <button id="btn-hud-play" class="playback-btn" title="Start Race">▶</button>
+          <button id="btn-hud-pause" class="playback-btn" style="display:none;" title="Pause (P)">⏸</button>
+          <button id="btn-hud-resume" class="playback-btn" style="display:none;" title="Resume (P)">▶</button>
+        </div>
       </div>
     </div>
 
@@ -312,6 +317,34 @@
 
       <div id="hint-bar">
         [A/D or ARROWS] STEER · [SPACE] NITRO · [P/ESC] PAUSE
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom High Score Input Modal (Replaces browser prompt()) -->
+  <div id="highScoreModal" class="modal-overlay hidden">
+    <div class="card-panel" style="text-align:center;">
+      <h1 class="title-glow" style="font-size:32px;">NEW HIGH SCORE!</h1>
+      <p style="font-size:14px; color:var(--text-muted);">You set a top 10 score on the leaderboard. Enter your driver name:</p>
+      
+      <input type="text" id="driverNameInput" class="cyber-input" value="Racer-X" maxlength="15" autocomplete="off" spellcheck="false">
+
+      <div style="display:flex; gap:12px; justify-content:center; margin-top:10px;">
+        <button id="btnSubmitHighScore" class="cyber-btn">CONFIRM</button>
+        <button id="btnSkipHighScore" class="cyber-btn" style="border-color:var(--text-muted); color:var(--text-muted);">SKIP</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom Confirmation Modal (Replaces browser confirm()) -->
+  <div id="confirmModal" class="modal-overlay hidden">
+    <div class="card-panel" style="text-align:center;">
+      <h1 id="confirmTitle" class="title-glow" style="font-size:28px; background:linear-gradient(180deg, #ff0055 0%, #ff7700 100%); -webkit-background-clip:text;">RESET PROGRESS?</h1>
+      <p id="confirmDesc" style="font-size:14px; color:var(--text-muted);">This action will permanently delete all saved high scores, campaign zones, and garage car skins.</p>
+
+      <div style="display:flex; gap:12px; justify-content:center; margin-top:10px;">
+        <button id="btnConfirmAction" class="cyber-btn" style="border-color:#ff0044; color:#ff0044;">CONFIRM RESET</button>
+        <button id="btnCancelAction" class="cyber-btn" style="border-color:var(--text-muted); color:var(--text-muted);">CANCEL</button>
       </div>
     </div>
   </div>

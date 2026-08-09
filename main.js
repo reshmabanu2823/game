@@ -9,15 +9,6 @@
     { id: 'orbital', name: 'Orbital Ring', difficulty: 'Extreme', icon: '🌌', reqScore: 12000, fogColor: 0x001525, sunColor: 0x00f3ff, desc: 'Space highway with intense homing hunter vehicles.' }
   ];
 
-  // --- CHALLENGE MODES CONFIGURATION ---
-  const MODES = [
-    { id: 'endless', name: 'Endless Survival', desc: 'Survive as long as possible and chase maximum score.' },
-    { id: 'time', name: 'Time Trial', desc: 'Reach 2,000m target distance as fast as possible.' },
-    { id: 'zerodmg', name: 'Zero Damage', desc: 'Reach 1,500m without taking a single crash or shield hit.' },
-    { id: 'collector', name: 'Orb Collector', desc: 'Gather 15 cyan energy orbs before reaching 2,000m.' },
-    { id: 'gauntlet', name: 'Hunter Gauntlet', desc: 'Dense scripted waves of homing hunter vehicles.' }
-  ];
-
   // --- CAR SKINS DEFINITION ---
   const CAR_SKINS = [
     { id: 'cyber', name: 'Cyber Streak', reqScore: 0, bodyColor: 0x070b14, glowColor: 0x00f3ff, tailColor: 0xff00aa, desc: 'Standard issue high-speed synthwave cruiser.' },
@@ -31,6 +22,8 @@
   const Storage = {
     getBestScore: () => Number(localStorage.getItem('neondrift_3d_best') || 0),
     setBestScore: (s) => localStorage.setItem('neondrift_3d_best', s),
+    getLastDriverName: () => localStorage.getItem('neondrift_3d_lastname') || 'Racer-X',
+    setLastDriverName: (name) => localStorage.setItem('neondrift_3d_lastname', name),
     getSelectedCar: () => localStorage.getItem('neondrift_3d_car') || 'cyber',
     setSelectedCar: (id) => localStorage.setItem('neondrift_3d_car', id),
     getSelectedZone: () => localStorage.getItem('neondrift_3d_zone') || 'district',
@@ -45,6 +38,7 @@
     setSettings: (cfg) => localStorage.setItem('neondrift_3d_settings', JSON.stringify(cfg)),
     clearAll: () => {
       localStorage.removeItem('neondrift_3d_best');
+      localStorage.removeItem('neondrift_3d_lastname');
       localStorage.removeItem('neondrift_3d_car');
       localStorage.removeItem('neondrift_3d_zone');
       localStorage.removeItem('neondrift_3d_mode');
@@ -163,6 +157,7 @@
   let currentView = 'home';
   let isPlaying = false;
   let isPaused = false;
+  let pendingHighScore = null;
 
   let targetLane = 2;
   let playerPosX = 0;
@@ -181,14 +176,12 @@
   let cameraShake = 0;
   let curveOffset = 0;
 
-  // Challenge tracking
   let modeTimer = 0;
   let collectedOrbs = 0;
   let zeroDamageHit = false;
 
-  // Branching paths tracking
   let forkWarningTime = 0;
-  let activeBranchType = 'NORMAL'; // NORMAL, SHORTCUT, HAZARD, HIGHWAY
+  let activeBranchType = 'NORMAL';
 
   const keys = {};
 
@@ -218,6 +211,7 @@
     const uiContainer = document.getElementById('ui-container');
     if (viewId === 'play') {
       uiContainer.style.display = 'flex';
+      updatePlaybackControlsHUD();
       if (!isPlaying) startRace();
     } else {
       uiContainer.style.display = 'none';
@@ -225,6 +219,8 @@
       isPaused = false;
       document.getElementById('pauseModal').classList.add('hidden');
       document.getElementById('gameOverModal').classList.add('hidden');
+      document.getElementById('highScoreModal').classList.add('hidden');
+      document.getElementById('confirmModal').classList.add('hidden');
     }
 
     if (viewId === 'home') updateHomeRibbon();
@@ -241,6 +237,26 @@
       ribbon.innerHTML = `🏆 YOUR PERSONAL BEST HIGH SCORE: <strong>${best.toLocaleString()} PTS</strong>`;
       ribbon.style.display = 'inline-flex';
     } else { ribbon.style.display = 'none'; }
+  }
+
+  function updatePlaybackControlsHUD() {
+    const btnPlay = document.getElementById('btn-hud-play');
+    const btnPause = document.getElementById('btn-hud-pause');
+    const btnResume = document.getElementById('btn-hud-resume');
+
+    if (!isPlaying) {
+      btnPlay.style.display = 'flex';
+      btnPause.style.display = 'none';
+      btnResume.style.display = 'none';
+    } else if (isPaused) {
+      btnPlay.style.display = 'none';
+      btnPause.style.display = 'none';
+      btnResume.style.display = 'flex';
+    } else {
+      btnPlay.style.display = 'none';
+      btnPause.style.display = 'flex';
+      btnResume.style.display = 'none';
+    }
   }
 
   // --- THREE.JS ENGINE SETUP ---
@@ -272,6 +288,12 @@
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+
+    // Attach Playback Button Handlers
+    document.getElementById('btn-hud-play').addEventListener('click', startRace);
+    document.getElementById('btn-hud-pause').addEventListener('click', togglePause);
+    document.getElementById('btn-hud-resume').addEventListener('click', togglePause);
+    setupHighScoreModalHandlers();
   }
 
   function buildEnvironment() {
@@ -449,8 +471,10 @@
   }
 
   function togglePause() {
+    if (!isPlaying) return;
     isPaused = !isPaused;
     document.getElementById('pauseModal').classList.toggle('hidden', !isPaused);
+    updatePlaybackControlsHUD();
   }
 
   function rand(min, max) { return min + Math.random() * (max - min); }
@@ -463,7 +487,6 @@
     const cfg = Storage.getSettings();
     const mode = Storage.getSelectedMode();
 
-    // Branching Decision Fork System every ~40 seconds
     if (time % 1600 === 0) {
       forkWarningTime = 120;
       document.getElementById('fork-banner').style.display = 'block';
@@ -515,12 +538,10 @@
       seg.position.x = Math.sin(zFactor * Math.PI) * curveOffset;
     });
 
-    // Spawning frequency based on branch type
     const spawnRate = activeBranchType === 'HAZARD' ? 0.05 : 0.035;
     if (Math.random() < spawnRate) spawnObstacle();
     if (Math.random() < 0.025) spawnPickup();
 
-    // Obstacle collisions
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const obs = obstacles[i];
       obs.mesh.position.z += scrollDelta - obs.speedOffset;
@@ -568,7 +589,6 @@
       if (obs.mesh.position.z > 20) { scene.remove(obs.mesh); obstacles.splice(i, 1); }
     }
 
-    // Pickups
     for (let i = pickups.length - 1; i >= 0; i--) {
       const p = pickups[i];
       p.mesh.position.z += scrollDelta;
@@ -608,21 +628,10 @@
 
     score += Math.floor(currentSpeed * 0.05 * combo);
 
-    // Mode-specific victory conditions
-    if (mode === 'time' && distanceMeters >= 2000) {
-      triggerGameOver(true, 'Time Trial Completed!');
-      return;
-    }
-    if (mode === 'zerodmg' && distanceMeters >= 1500) {
-      triggerGameOver(true, 'Zero Damage Mastered!');
-      return;
-    }
-    if (mode === 'collector' && collectedOrbs >= 15) {
-      triggerGameOver(true, 'Orb Collector Completed!');
-      return;
-    }
+    if (mode === 'time' && distanceMeters >= 2000) { triggerGameOver(true, 'Time Trial Completed!'); return; }
+    if (mode === 'zerodmg' && distanceMeters >= 1500) { triggerGameOver(true, 'Zero Damage Mastered!'); return; }
+    if (mode === 'collector' && collectedOrbs >= 15) { triggerGameOver(true, 'Orb Collector Completed!'); return; }
 
-    // Update HUD
     document.getElementById('score').textContent = Math.floor(score);
     document.getElementById('best').textContent = Math.max(Math.floor(score), Storage.getBestScore());
     document.getElementById('speedometer').textContent = Math.floor(currentSpeed);
@@ -673,16 +682,19 @@
 
     document.getElementById('pauseModal').classList.add('hidden');
     document.getElementById('gameOverModal').classList.add('hidden');
+    document.getElementById('highScoreModal').classList.add('hidden');
+    updatePlaybackControlsHUD();
   }
 
   function triggerGameOver(success = false, customMsg = '') {
     isPlaying = false;
+    updatePlaybackControlsHUD();
+
     const finalScore = Math.floor(score);
     const prevBest = Storage.getBestScore();
 
     if (finalScore > prevBest) Storage.setBestScore(finalScore);
 
-    // Save campaign progress if challenge succeeded
     if (success) {
       const camp = Storage.getCampaign();
       const currentZone = Storage.getSelectedZone();
@@ -696,15 +708,47 @@
 
     const lb = Storage.getLeaderboard();
     if (lb.length < 10 || finalScore > (lb[lb.length - 1]?.score || 0)) {
-      setTimeout(() => {
-        const name = prompt('NEW HIGH SCORE! Enter your driver name:', 'Racer-X') || 'Anonymous';
-        lb.push({ name, score: finalScore, car: Storage.getSelectedCar(), date: new Date().toLocaleDateString() });
-        lb.sort((a, b) => b.score - a.score);
-        Storage.setLeaderboard(lb.slice(0, 10));
-      }, 300);
+      pendingHighScore = finalScore;
+      const inputEl = document.getElementById('driverNameInput');
+      inputEl.value = Storage.getLastDriverName();
+      document.getElementById('highScoreModal').classList.remove('hidden');
+      setTimeout(() => { inputEl.focus(); inputEl.select(); }, 150);
+    } else {
+      document.getElementById('gameOverModal').classList.remove('hidden');
+    }
+  }
+
+  function setupHighScoreModalHandlers() {
+    const modal = document.getElementById('highScoreModal');
+    const inputEl = document.getElementById('driverNameInput');
+    const btnSubmit = document.getElementById('btnSubmitHighScore');
+    const btnSkip = document.getElementById('btnSkipHighScore');
+
+    function saveHighScore() {
+      if (!pendingHighScore) return;
+      const name = (inputEl.value.trim() || 'Racer-X').substring(0, 15);
+      Storage.setLastDriverName(name);
+
+      const lb = Storage.getLeaderboard();
+      lb.push({ name, score: pendingHighScore, car: Storage.getSelectedCar(), date: new Date().toLocaleDateString() });
+      lb.sort((a, b) => b.score - a.score);
+      Storage.setLeaderboard(lb.slice(0, 10));
+
+      pendingHighScore = null;
+      modal.classList.add('hidden');
+      document.getElementById('gameOverModal').classList.remove('hidden');
     }
 
-    document.getElementById('gameOverModal').classList.remove('hidden');
+    btnSubmit.addEventListener('click', saveHighScore);
+    btnSkip.addEventListener('click', () => {
+      pendingHighScore = null;
+      modal.classList.add('hidden');
+      document.getElementById('gameOverModal').classList.remove('hidden');
+    });
+
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') saveHighScore();
+    });
   }
 
   // --- WORLD MAP RENDERER ---
@@ -717,9 +761,7 @@
     container.innerHTML = ZONES.map((z, idx) => {
       const isUnlocked = bestScore >= z.reqScore;
       const isCompleted = camp.completed.includes(z.id);
-      const isSelected = activeZone === z.id;
 
-      // Circuit node positions
       const posX = 15 + idx * 25;
       const posY = 50 + (idx % 2 === 0 ? -18 : 18);
 
@@ -732,7 +774,6 @@
       `;
     }).join('');
 
-    // Update campaign progress bar
     const progress = Math.min(100, Math.floor((camp.completed.length / ZONES.length) * 100));
     document.getElementById('campaignProgressFill').style.width = `${progress}%`;
     document.getElementById('campaignProgressText').textContent = `${progress}% COMPLETED`;
@@ -818,12 +859,24 @@
       Storage.setSettings(cfg);
     };
 
-    document.getElementById('resetDataBtn').onclick = () => {
-      if (confirm('Are you sure you want to reset all high scores, garage unlocks, and campaign progress?')) {
-        Storage.clearAll();
-        alert('All saved progress has been reset.');
-        location.reload();
-      }
+    // Custom In-Page Confirm Modal for Reset Progress
+    const resetBtn = document.getElementById('resetDataBtn');
+    const confirmModal = document.getElementById('confirmModal');
+    const btnConfirm = document.getElementById('btnConfirmAction');
+    const btnCancel = document.getElementById('btnCancelAction');
+
+    resetBtn.onclick = () => {
+      confirmModal.classList.remove('hidden');
+    };
+
+    btnCancel.onclick = () => {
+      confirmModal.classList.add('hidden');
+    };
+
+    btnConfirm.onclick = () => {
+      confirmModal.classList.add('hidden');
+      Storage.clearAll();
+      location.reload();
     };
   }
 

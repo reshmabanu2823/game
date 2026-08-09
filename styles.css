@@ -309,6 +309,63 @@ html, body {
   background: rgba(255, 255, 255, 0.1);
 }
 
+/* Playback Control Cluster in Top-Right HUD */
+#hud-playback-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  pointer-events: auto;
+}
+
+.playback-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(8, 12, 28, 0.85);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.playback-btn:hover {
+  background: var(--cyan);
+  color: var(--bg-dark);
+  box-shadow: 0 0 25px var(--cyan);
+  transform: scale(1.1);
+}
+
+.playback-btn:active {
+  transform: scale(0.95);
+}
+
+/* Styled Text Input in High Score Modal */
+.cyber-input {
+  width: 100%;
+  padding: 12px 18px;
+  background: rgba(4, 6, 16, 0.9);
+  border: 2px solid var(--cyan);
+  border-radius: 4px;
+  font-family: 'Orbitron', monospace;
+  font-size: 16px;
+  color: #fff;
+  outline: none;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+  margin: 12px 0;
+  text-align: center;
+}
+
+.cyber-input:focus {
+  border-color: var(--yellow);
+  box-shadow: 0 0 25px var(--yellow);
+}
+
 /* Mode-Specific HUD Badges */
 .hud-mode-meter {
   display: flex;
@@ -616,10 +673,10 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
 
 /* Overlays & Modals */
 .modal-overlay {
-  position: absolute; inset: 0; z-index: 50;
-  background: rgba(3, 4, 12, 0.85); backdrop-filter: blur(10px);
+  position: absolute; inset: 0; z-index: 60;
+  background: rgba(3, 4, 12, 0.88); backdrop-filter: blur(10px);
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  padding: 20px; transition: opacity 0.3s ease;
+  padding: 20px; transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 .modal-overlay.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
 
@@ -634,6 +691,12 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
   background: var(--panel-bg); border: 1px solid var(--border-glow);
   box-shadow: 0 0 30px rgba(0, 243, 255, 0.15); border-radius: 10px;
   padding: 24px 32px; max-width: 540px; width: 100%; display: flex; flex-direction: column; gap: 16px;
+  animation: modalPop 0.3s ease forwards;
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 .cyber-btn {
