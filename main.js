@@ -1,6 +1,23 @@
-/* NEON HIGHWAY — Full Multi-Page SPA Router & 3D Game Engine */
+/* NEON HIGHWAY — Campaign, World Map, Branching Roads & Challenge Engine */
 
 (() => {
+  // --- ZONES CONFIGURATION ---
+  const ZONES = [
+    { id: 'district', name: 'Neon District', difficulty: 'Normal', icon: '🌃', reqScore: 0, fogColor: 0x0c061a, sunColor: 0xff7700, desc: 'Downtown synthwave grid. Balanced traffic density.' },
+    { id: 'desert', name: 'Desert Overpass', difficulty: 'Fast', icon: '🌅', reqScore: 2000, fogColor: 0x1e0802, sunColor: 0xffea00, desc: 'High-speed sunset freeway with long straightaways.' },
+    { id: 'rain', name: 'Rain City', difficulty: 'Hard', icon: '🌧️', reqScore: 6000, fogColor: 0x150020, sunColor: 0xff00aa, desc: 'Twilight rain environment with dense traffic & obstacles.' },
+    { id: 'orbital', name: 'Orbital Ring', difficulty: 'Extreme', icon: '🌌', reqScore: 12000, fogColor: 0x001525, sunColor: 0x00f3ff, desc: 'Space highway with intense homing hunter vehicles.' }
+  ];
+
+  // --- CHALLENGE MODES CONFIGURATION ---
+  const MODES = [
+    { id: 'endless', name: 'Endless Survival', desc: 'Survive as long as possible and chase maximum score.' },
+    { id: 'time', name: 'Time Trial', desc: 'Reach 2,000m target distance as fast as possible.' },
+    { id: 'zerodmg', name: 'Zero Damage', desc: 'Reach 1,500m without taking a single crash or shield hit.' },
+    { id: 'collector', name: 'Orb Collector', desc: 'Gather 15 cyan energy orbs before reaching 2,000m.' },
+    { id: 'gauntlet', name: 'Hunter Gauntlet', desc: 'Dense scripted waves of homing hunter vehicles.' }
+  ];
+
   // --- CAR SKINS DEFINITION ---
   const CAR_SKINS = [
     { id: 'cyber', name: 'Cyber Streak', reqScore: 0, bodyColor: 0x070b14, glowColor: 0x00f3ff, tailColor: 0xff00aa, desc: 'Standard issue high-speed synthwave cruiser.' },
@@ -16,13 +33,22 @@
     setBestScore: (s) => localStorage.setItem('neondrift_3d_best', s),
     getSelectedCar: () => localStorage.getItem('neondrift_3d_car') || 'cyber',
     setSelectedCar: (id) => localStorage.setItem('neondrift_3d_car', id),
+    getSelectedZone: () => localStorage.getItem('neondrift_3d_zone') || 'district',
+    setSelectedZone: (id) => localStorage.setItem('neondrift_3d_zone', id),
+    getSelectedMode: () => localStorage.getItem('neondrift_3d_mode') || 'endless',
+    setSelectedMode: (id) => localStorage.setItem('neondrift_3d_mode', id),
+    getCampaign: () => JSON.parse(localStorage.getItem('neondrift_3d_campaign') || '{"completed":[]}'),
+    setCampaign: (c) => localStorage.setItem('neondrift_3d_campaign', JSON.stringify(c)),
     getLeaderboard: () => JSON.parse(localStorage.getItem('neondrift_3d_leaderboard') || '[]'),
     setLeaderboard: (data) => localStorage.setItem('neondrift_3d_leaderboard', JSON.stringify(data)),
-    getSettings: () => JSON.parse(localStorage.getItem('neondrift_3d_settings') || '{"sound":true,"shake":true,"input":"keyboard","reducedMotion":false}'),
+    getSettings: () => JSON.parse(localStorage.getItem('neondrift_3d_settings') || '{"sound":true,"shake":true,"input":"keyboard"}'),
     setSettings: (cfg) => localStorage.setItem('neondrift_3d_settings', JSON.stringify(cfg)),
     clearAll: () => {
       localStorage.removeItem('neondrift_3d_best');
       localStorage.removeItem('neondrift_3d_car');
+      localStorage.removeItem('neondrift_3d_zone');
+      localStorage.removeItem('neondrift_3d_mode');
+      localStorage.removeItem('neondrift_3d_campaign');
       localStorage.removeItem('neondrift_3d_leaderboard');
       localStorage.removeItem('neondrift_3d_settings');
     }
@@ -111,11 +137,17 @@
       gain.connect(this.ctx.destination);
       whiteNoise.start();
     }
+
+    playBoost() {
+      if (!this.ctx || this.muted) return;
+      this.playPickup(440);
+      this.playPickup(880);
+    }
   }
 
   const audio = new SoundSynth();
 
-  // --- GAME & THREE.JS GLOBALS ---
+  // --- THREE.JS & GAME GLOBALS ---
   const LANES = [-8, -4, 0, 4, 8];
   const ROAD_WIDTH = 22;
   const ROAD_LENGTH = 500;
@@ -145,12 +177,22 @@
   let comboTimer = 0;
   let shieldActive = false;
   let time = 0;
+  let distanceMeters = 0;
   let cameraShake = 0;
   let curveOffset = 0;
 
+  // Challenge tracking
+  let modeTimer = 0;
+  let collectedOrbs = 0;
+  let zeroDamageHit = false;
+
+  // Branching paths tracking
+  let forkWarningTime = 0;
+  let activeBranchType = 'NORMAL'; // NORMAL, SHORTCUT, HAZARD, HIGHWAY
+
   const keys = {};
 
-  // --- SPA ROUTER & NAVIGATION ---
+  // --- ROUTER ---
   function initRouter() {
     window.addEventListener('hashchange', handleRoute);
     handleRoute();
@@ -163,19 +205,16 @@
 
   function switchView(viewId) {
     currentView = viewId;
-    const views = document.querySelectorAll('.view-page');
-    views.forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.view-page').forEach(v => v.classList.remove('active'));
 
     const targetView = document.getElementById(`view-${viewId}`) || document.getElementById('view-home');
     targetView.classList.add('active');
 
-    // Update active navbar link
     document.querySelectorAll('.nav-link').forEach(link => {
       const href = link.getAttribute('href').replace('#', '');
       link.classList.toggle('active', href === viewId);
     });
 
-    // Toggle 3D canvas visibility & race mode
     const uiContainer = document.getElementById('ui-container');
     if (viewId === 'play') {
       uiContainer.style.display = 'flex';
@@ -188,8 +227,8 @@
       document.getElementById('gameOverModal').classList.add('hidden');
     }
 
-    // Refresh view specific contents
     if (viewId === 'home') updateHomeRibbon();
+    if (viewId === 'map') renderWorldMap();
     if (viewId === 'leaderboard') renderLeaderboard();
     if (viewId === 'garage') renderGarage();
     if (viewId === 'settings') renderSettings();
@@ -199,14 +238,12 @@
     const best = Storage.getBestScore();
     const ribbon = document.getElementById('homeBestRibbon');
     if (best > 0) {
-      ribbon.innerHTML = `🏆 YOUR PERSONAL BEST HIGH SCORE: <strong>${best} PTS</strong>`;
+      ribbon.innerHTML = `🏆 YOUR PERSONAL BEST HIGH SCORE: <strong>${best.toLocaleString()} PTS</strong>`;
       ribbon.style.display = 'inline-flex';
-    } else {
-      ribbon.style.display = 'none';
-    }
+    } else { ribbon.style.display = 'none'; }
   }
 
-  // --- THREE.JS INITIALIZATION ---
+  // --- THREE.JS ENGINE SETUP ---
   function initThree() {
     const container = document.getElementById('canvas-container');
     scene = new THREE.Scene();
@@ -262,6 +299,13 @@
     scene.add(mountainGroup);
   }
 
+  function applyZoneTheme() {
+    const activeZoneId = Storage.getSelectedZone();
+    const zone = ZONES.find(z => z.id === activeZoneId) || ZONES[0];
+    if (scene) scene.fog.color.setHex(zone.fogColor);
+    if (sunMesh) sunMesh.material.color.setHex(zone.sunColor);
+  }
+
   function buildRoad() {
     roadGroup = new THREE.Group();
     const numSegments = ROAD_LENGTH / SEGMENT_LENGTH;
@@ -294,7 +338,6 @@
 
   function buildPlayerCar() {
     playerCar = new THREE.Group();
-
     const bodyGeom = new THREE.BoxGeometry(2.2, 0.7, 4.2);
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x070b14, roughness: 0.2, metalness: 0.8 });
     playerBodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
@@ -341,13 +384,13 @@
     if (playerTailMesh) playerTailMesh.material.color.setHex(skin.tailColor);
   }
 
-  // --- GAME LOOP & SPAWNER ---
   function spawnObstacle() {
     const laneIdx = Math.floor(rand(0, LANES.length));
     const x = LANES[laneIdx];
     const z = -ROAD_LENGTH + 50;
 
-    const isHunter = time > 2200 && Math.random() < 0.35;
+    const mode = Storage.getSelectedMode();
+    const isHunter = (mode === 'gauntlet' || time > 1800) && Math.random() < 0.45;
     const isDestructible = !isHunter && Math.random() < 0.25;
 
     let mesh;
@@ -377,7 +420,7 @@
 
     const roll = Math.random();
     let type = 'ORB', color = 0x00f3ff, geom;
-    if (roll < 0.65) { type = 'ORB'; color = 0x00f3ff; geom = new THREE.OctahedronGeometry(0.7); }
+    if (roll < 0.7) { type = 'ORB'; color = 0x00f3ff; geom = new THREE.OctahedronGeometry(0.7); }
     else if (roll < 0.85) { type = 'SHIELD'; color = 0xff00aa; geom = new THREE.TorusGeometry(0.6, 0.2, 8, 16); }
     else { type = 'BOMB'; color = 0xffea00; geom = new THREE.IcosahedronGeometry(0.7); }
 
@@ -415,8 +458,26 @@
   function updateGame() {
     if (!isPlaying || isPaused) return;
     time++;
+    distanceMeters += Math.floor(currentSpeed * 0.05);
 
     const cfg = Storage.getSettings();
+    const mode = Storage.getSelectedMode();
+
+    // Branching Decision Fork System every ~40 seconds
+    if (time % 1600 === 0) {
+      forkWarningTime = 120;
+      document.getElementById('fork-banner').style.display = 'block';
+    }
+    if (forkWarningTime > 0) {
+      forkWarningTime--;
+      if (forkWarningTime === 0) {
+        document.getElementById('fork-banner').style.display = 'none';
+        if (targetLane <= 1) activeBranchType = 'SHORTCUT';
+        else if (targetLane === 2) activeBranchType = 'HIGHWAY';
+        else activeBranchType = 'HAZARD';
+      }
+    }
+
     currentSpeed = isBoosting && boostAmount > 0 ? MAX_SPEED : BASE_SPEED + Math.min(time * 0.02, 50);
 
     if (isBoosting && boostAmount > 0) boostAmount = Math.max(0, boostAmount - 0.8);
@@ -425,7 +486,7 @@
     document.getElementById('boost-meter-inner').style.width = `${boostAmount}%`;
     audio.updateEngine(currentSpeed / MAX_SPEED);
 
-    curveOffset = Math.sin(time * 0.015) * 8;
+    curveOffset = Math.sin(time * 0.015) * (activeBranchType === 'HAZARD' ? 14 : 8);
     sunMesh.position.x = curveOffset * 1.5;
 
     const targetX = LANES[targetLane];
@@ -454,7 +515,9 @@
       seg.position.x = Math.sin(zFactor * Math.PI) * curveOffset;
     });
 
-    if (Math.random() < 0.035) spawnObstacle();
+    // Spawning frequency based on branch type
+    const spawnRate = activeBranchType === 'HAZARD' ? 0.05 : 0.035;
+    if (Math.random() < spawnRate) spawnObstacle();
     if (Math.random() < 0.025) spawnPickup();
 
     // Obstacle collisions
@@ -471,6 +534,13 @@
       const dx = Math.abs(obs.mesh.position.x - playerCar.position.x);
 
       if (dz < 2.5 && dx < 2.0) {
+        zeroDamageHit = true;
+        if (mode === 'zerodmg') {
+          audio.playExplosion();
+          triggerGameOver(false, 'Zero Damage Challenge Failed!');
+          return;
+        }
+
         if (isBoosting && obs.isDestructible) {
           audio.playExplosion();
           cameraShake = 0.8;
@@ -490,7 +560,7 @@
         } else {
           audio.playExplosion();
           cameraShake = 1.2;
-          triggerGameOver();
+          triggerGameOver(false);
           return;
         }
       }
@@ -510,6 +580,7 @@
       if (dz < 2.2 && dx < 1.8) {
         audio.playPickup();
         if (p.type === 'ORB') {
+          collectedOrbs++;
           combo = Math.min(combo + 1, 20);
           comboTimer = 180;
           score += 100 * combo;
@@ -536,10 +607,32 @@
     if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) combo = 1; }
 
     score += Math.floor(currentSpeed * 0.05 * combo);
+
+    // Mode-specific victory conditions
+    if (mode === 'time' && distanceMeters >= 2000) {
+      triggerGameOver(true, 'Time Trial Completed!');
+      return;
+    }
+    if (mode === 'zerodmg' && distanceMeters >= 1500) {
+      triggerGameOver(true, 'Zero Damage Mastered!');
+      return;
+    }
+    if (mode === 'collector' && collectedOrbs >= 15) {
+      triggerGameOver(true, 'Orb Collector Completed!');
+      return;
+    }
+
+    // Update HUD
     document.getElementById('score').textContent = Math.floor(score);
     document.getElementById('best').textContent = Math.max(Math.floor(score), Storage.getBestScore());
     document.getElementById('speedometer').textContent = Math.floor(currentSpeed);
     document.getElementById('combo-display').textContent = combo > 1 ? `COMBO x${combo}` : '';
+
+    const modeHud = document.getElementById('mode-hud-meter');
+    if (mode === 'time') modeHud.textContent = `⏱️ ${(time / 60).toFixed(1)}s / 2000m`;
+    else if (mode === 'zerodmg') modeHud.textContent = `🛡️ NO HIT: ${distanceMeters}m / 1500m`;
+    else if (mode === 'collector') modeHud.textContent = `💎 ORBS: ${collectedOrbs} / 15`;
+    else modeHud.textContent = `ZONE: ${Storage.getSelectedZone().toUpperCase()}`;
 
     document.querySelectorAll('.lane-dot').forEach((dot, idx) => {
       dot.classList.toggle('active', idx === targetLane);
@@ -550,7 +643,6 @@
     if (currentView === 'play' && isPlaying && !isPaused) {
       updateGame();
     } else {
-      // Ambient camera movement for non-race pages
       time += 0.5;
       roadSegments.forEach(seg => {
         seg.position.z += 1.5;
@@ -563,18 +655,17 @@
 
   function startRace() {
     audio.init();
+    applyZoneTheme();
     isPlaying = true;
     isPaused = false;
-    score = 0;
-    combo = 1;
-    comboTimer = 0;
-    time = 0;
-    targetLane = 2;
-    playerPosX = 0;
-    shieldActive = false;
-    boostAmount = 100;
+
+    score = 0; combo = 1; comboTimer = 0; time = 0; distanceMeters = 0;
+    targetLane = 2; playerPosX = 0; shieldActive = false; boostAmount = 100;
+    collectedOrbs = 0; zeroDamageHit = false; forkWarningTime = 0; activeBranchType = 'NORMAL';
+
     shieldBubbleMesh.visible = false;
     document.getElementById('shield-bar-container').classList.remove('active');
+    document.getElementById('fork-banner').style.display = 'none';
 
     obstacles.forEach(o => scene.remove(o.mesh));
     pickups.forEach(p => scene.remove(p.mesh));
@@ -584,19 +675,25 @@
     document.getElementById('gameOverModal').classList.add('hidden');
   }
 
-  function triggerGameOver() {
+  function triggerGameOver(success = false, customMsg = '') {
     isPlaying = false;
     const finalScore = Math.floor(score);
     const prevBest = Storage.getBestScore();
 
-    if (finalScore > prevBest) {
-      Storage.setBestScore(finalScore);
+    if (finalScore > prevBest) Storage.setBestScore(finalScore);
+
+    // Save campaign progress if challenge succeeded
+    if (success) {
+      const camp = Storage.getCampaign();
+      const currentZone = Storage.getSelectedZone();
+      if (!camp.completed.includes(currentZone)) camp.completed.push(currentZone);
+      Storage.setCampaign(camp);
     }
 
+    document.getElementById('gameOverTitle').textContent = success ? 'VICTORY!' : 'RUN CRASHED';
     document.getElementById('finalScore').textContent = finalScore;
     document.getElementById('finalBest').textContent = Storage.getBestScore();
 
-    // Check if score qualifies for top 10 leaderboard
     const lb = Storage.getLeaderboard();
     if (lb.length < 10 || finalScore > (lb[lb.length - 1]?.score || 0)) {
       setTimeout(() => {
@@ -610,7 +707,46 @@
     document.getElementById('gameOverModal').classList.remove('hidden');
   }
 
-  // --- GARAGE VIEW RENDERER ---
+  // --- WORLD MAP RENDERER ---
+  function renderWorldMap() {
+    const container = document.getElementById('worldMapNodes');
+    const bestScore = Storage.getBestScore();
+    const activeZone = Storage.getSelectedZone();
+    const camp = Storage.getCampaign();
+
+    container.innerHTML = ZONES.map((z, idx) => {
+      const isUnlocked = bestScore >= z.reqScore;
+      const isCompleted = camp.completed.includes(z.id);
+      const isSelected = activeZone === z.id;
+
+      // Circuit node positions
+      const posX = 15 + idx * 25;
+      const posY = 50 + (idx % 2 === 0 ? -18 : 18);
+
+      return `
+        <div class="zone-node ${isCompleted ? 'completed' : ''} ${isUnlocked ? 'unlocked' : 'locked'}"
+             style="left:${posX}%; top:${posY}%;" data-id="${z.id}">
+          <div class="node-icon">${z.icon}</div>
+          <div class="node-title">${z.name}</div>
+        </div>
+      `;
+    }).join('');
+
+    // Update campaign progress bar
+    const progress = Math.min(100, Math.floor((camp.completed.length / ZONES.length) * 100));
+    document.getElementById('campaignProgressFill').style.width = `${progress}%`;
+    document.getElementById('campaignProgressText').textContent = `${progress}% COMPLETED`;
+
+    document.querySelectorAll('.zone-node.unlocked').forEach(node => {
+      node.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        Storage.setSelectedZone(id);
+        renderWorldMap();
+      });
+    });
+  }
+
+  // --- GARAGE & LEADERBOARD RENDERERS ---
   function renderGarage() {
     const grid = document.getElementById('garageGrid');
     const bestScore = Storage.getBestScore();
@@ -646,19 +782,12 @@
     });
   }
 
-  // --- LEADERBOARD VIEW RENDERER ---
   function renderLeaderboard() {
     const tableBody = document.getElementById('leaderboardBody');
     const lb = Storage.getLeaderboard();
 
     if (lb.length === 0) {
-      tableBody.innerHTML = `
-        <tr>
-          <td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">
-            No high scores recorded yet! <a href="#play" style="color:var(--cyan);">Drive a run to set the first score.</a>
-          </td>
-        </tr>
-      `;
+      tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:30px; color:var(--text-muted);">No high scores recorded yet! <a href="#play" style="color:var(--cyan);">Drive a run to set the first score.</a></td></tr>`;
       return;
     }
 
@@ -673,7 +802,6 @@
     `).join('');
   }
 
-  // --- SETTINGS VIEW RENDERER ---
   function renderSettings() {
     const cfg = Storage.getSettings();
     document.getElementById('settingSound').checked = cfg.sound;
@@ -691,9 +819,9 @@
     };
 
     document.getElementById('resetDataBtn').onclick = () => {
-      if (confirm('Are you sure you want to reset all high scores, garage unlocks, and settings?')) {
+      if (confirm('Are you sure you want to reset all high scores, garage unlocks, and campaign progress?')) {
         Storage.clearAll();
-        alert('All saved data has been reset.');
+        alert('All saved progress has been reset.');
         location.reload();
       }
     };
@@ -705,7 +833,6 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  // --- ATTACH EVENT LISTENERS & START ---
   document.getElementById('startRaceBtn').addEventListener('click', () => window.location.hash = '#play');
   document.getElementById('retryBtn').addEventListener('click', startRace);
   document.getElementById('resumeBtn').addEventListener('click', togglePause);

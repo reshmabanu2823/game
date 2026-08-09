@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NEON HIGHWAY — 3D Synthwave Car Dodge Racer</title>
+  <title>NEON HIGHWAY — World Map Campaign &amp; Branching Paths</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -17,6 +17,7 @@
     <nav>
       <ul class="nav-links">
         <li><a href="#home" class="nav-link active">HOME</a></li>
+        <li><a href="#map" class="nav-link">WORLD MAP</a></li>
         <li><a href="#how-to-play" class="nav-link">RULES</a></li>
         <li><a href="#leaderboard" class="nav-link">LEADERBOARD</a></li>
         <li><a href="#garage" class="nav-link">GARAGE</a></li>
@@ -27,7 +28,7 @@
     <a href="#play" id="startRaceBtn" class="nav-cta">PLAY NOW</a>
   </header>
 
-  <!-- 3D WebGL Background Canvas -->
+  <!-- 3D WebGL Canvas Container -->
   <div id="canvas-container"></div>
 
   <!-- Multi-Page View Container -->
@@ -38,48 +39,79 @@
       <div class="content-wrapper hero-section">
         <div id="homeBestRibbon" class="ribbon-bar" style="display:none;"></div>
         <h1 class="hero-title">NEON HIGHWAY</h1>
-        <p class="hero-tagline">INFINITE 3D SYNTHWAVE OVERDRIVE RACER</p>
+        <p class="hero-tagline">3D SYNTHWAVE CAMPAIGN &amp; BRANCHING PATHS</p>
 
         <div class="hero-actions">
-          <a href="#play" class="btn-primary"><span>⚡ PLAY NOW</span></a>
-          <a href="#how-to-play" class="btn-secondary">HOW TO PLAY</a>
+          <a href="#map" class="btn-primary"><span>🗺️ WORLD MAP CAMPAIGN</span></a>
+          <a href="#play" class="btn-secondary">QUICK RACE</a>
           <a href="#garage" class="btn-secondary">GARAGE</a>
         </div>
 
         <div class="feature-grid">
           <div class="feature-card">
-            <div class="feature-icon">🏎️</div>
-            <div class="feature-title">Dodge Traffic</div>
-            <div class="feature-desc">Navigate 5 lanes at high speed to avoid oncoming red barriers &amp; homing hunter cars.</div>
+            <div class="feature-icon">🌿</div>
+            <div class="feature-title">Branching Paths</div>
+            <div class="feature-desc">Steer into decision forks during races to choose between Shortcuts, High-Risk Hazard Lanes, or Highways.</div>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">⚡</div>
-            <div class="feature-title">Collect Nitro</div>
-            <div class="feature-desc">Grab yellow nitro pickups to boost, smash destructible barriers, and trigger EMP blast waves.</div>
+            <div class="feature-icon">🗺️</div>
+            <div class="feature-title">World Map Campaign</div>
+            <div class="feature-desc">Unlock 4 distinct zones (*Neon District, Desert Overpass, Rain City, Orbital Ring*) on the circuit map.</div>
           </div>
           <div class="feature-card">
-            <div class="feature-icon">🏆</div>
-            <div class="feature-title">Chase High Scores</div>
-            <div class="feature-desc">Chain cyan orb pickups for combo multipliers up to 20x and claim the #1 spot on the local leaderboard.</div>
+            <div class="feature-icon">🎯</div>
+            <div class="feature-title">5 Challenge Modes</div>
+            <div class="feature-desc">Master Time Trials, Zero Damage runs, Orb Collector trials, and dense Hunter Gauntlets.</div>
           </div>
           <div class="feature-card">
             <div class="feature-icon">🎨</div>
             <div class="feature-title">Unlock Car Skins</div>
-            <div class="feature-desc">Survive longer and earn points to unlock futuristic vehicle variants in the Garage.</div>
+            <div class="feature-desc">Complete zone challenges to earn points and equip high-tech neon vehicles in the Garage.</div>
           </div>
         </div>
 
         <footer>
-          Neon Highway v2.5 — Built with Three.js &amp; WebGL · Client-Side Only
+          Neon Highway Campaign Edition v3.0 · Built with Three.js &amp; WebGL
         </footer>
       </div>
     </section>
 
-    <!-- 2. HOW TO PLAY / RULES VIEW (#how-to-play) -->
+    <!-- 2. WORLD MAP CAMPAIGN VIEW (#map) -->
+    <section id="view-map" class="view-page">
+      <div class="content-wrapper">
+        <h2 class="page-title">CAMPAIGN WORLD MAP</h2>
+        <p class="page-subtitle">Select a zone node to view challenges, difficulty, and unlock status.</p>
+
+        <div class="campaign-progress-bar">
+          <div style="font-family:'Orbitron'; font-size:13px; color:var(--cyan);">CAMPAIGN PROGRESS</div>
+          <div class="progress-track">
+            <div id="campaignProgressFill" class="progress-fill"></div>
+          </div>
+          <div id="campaignProgressText" style="font-family:'Orbitron'; font-size:13px; color:var(--green);">0% COMPLETED</div>
+        </div>
+
+        <div class="map-viewport">
+          <svg class="map-svg-lines">
+            <line x1="15%" y1="32%" x2="40%" y2="68%" stroke="#00f3ff" stroke-width="2" stroke-dasharray="4" />
+            <line x1="40%" y1="68%" x2="65%" y2="32%" stroke="#00f3ff" stroke-width="2" stroke-dasharray="4" />
+            <line x1="65%" y1="32%" x2="90%" y2="68%" stroke="#00f3ff" stroke-width="2" stroke-dasharray="4" />
+          </svg>
+          <div id="worldMapNodes">
+            <!-- Rendered in main.js -->
+          </div>
+        </div>
+
+        <div style="text-align:center; margin-top:28px;">
+          <a href="#play" class="btn-primary">LAUNCH SELECTED ZONE</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. HOW TO PLAY / RULES VIEW (#how-to-play) -->
     <section id="view-how-to-play" class="view-page">
       <div class="content-wrapper">
-        <h2 class="page-title">RULES &amp; CONTROLS</h2>
-        <p class="page-subtitle">Master the synthwave highway and maximize your run survival.</p>
+        <h2 class="page-title">RULES &amp; BRANCHING GUIDE</h2>
+        <p class="page-subtitle">Master lane decision forks and challenge conditions.</p>
 
         <div class="glass-card">
           <h3 style="font-family:'Orbitron'; color:var(--cyan); margin-bottom:16px;">DRIVING CONTROLS</h3>
@@ -109,71 +141,45 @@
         </div>
 
         <div class="glass-card">
-          <h3 style="font-family:'Orbitron'; color:var(--yellow); margin-bottom:16px;">HAZARDS LEGEND</h3>
-          <div class="controls-flex">
+          <h3 style="font-family:'Orbitron'; color:var(--yellow); margin-bottom:16px;">BRANCHING ROAD DECISION FORKS</h3>
+          <p style="font-size:14px; color:var(--text-muted); line-height:1.6;">During runs, a warning banner will announce an upcoming road split. Move your vehicle into position before the timer expires:</p>
+          <div class="controls-flex" style="margin-top:14px;">
             <div class="preview-card">
-              <div class="preview-badge" style="background:#ff0044; box-shadow:0 0 10px #ff0044;">🔴</div>
+              <div class="preview-badge" style="background:rgba(0,255,170,0.2); border:1px solid var(--green);">🌿</div>
               <div>
-                <div style="font-weight:bold; color:#fff;">Standard Barrier</div>
-                <div style="font-size:13px; color:var(--text-muted);">Fixed red traffic obstacle. Dodge to avoid run crash.</div>
+                <div style="font-weight:bold; color:#fff;">Left Lanes: Shortcut</div>
+                <div style="font-size:13px; color:var(--text-muted);">Clearer path with high orb density.</div>
               </div>
             </div>
             <div class="preview-card">
-              <div class="preview-badge" style="background:#ff7700; box-shadow:0 0 10px #ff7700;">🏎️</div>
+              <div class="preview-badge" style="background:rgba(0,243,255,0.2); border:1px solid var(--cyan);">🛣️</div>
               <div>
-                <div style="font-weight:bold; color:#fff;">Orange Hunter</div>
-                <div style="font-size:13px; color:var(--text-muted);">Homing vehicle that drifts across lanes to block your path.</div>
+                <div style="font-weight:bold; color:#fff;">Center Lane: Highway</div>
+                <div style="font-size:13px; color:var(--text-muted);">Standard road layout.</div>
               </div>
             </div>
             <div class="preview-card">
-              <div class="preview-badge" style="background:#ffe600; box-shadow:0 0 10px #ffe600;">💥</div>
+              <div class="preview-badge" style="background:rgba(255,0,68,0.2); border:1px solid #ff0044;">⚠️</div>
               <div>
-                <div style="font-weight:bold; color:#fff;">Destructible Yellow</div>
-                <div style="font-size:13px; color:var(--text-muted);">Smash through while Nitro boosting to earn shockwave bonus score!</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="glass-card">
-          <h3 style="font-family:'Orbitron'; color:var(--green); margin-bottom:16px;">ROAD PICKUPS</h3>
-          <div class="controls-flex">
-            <div class="preview-card">
-              <div class="preview-badge" style="background:rgba(0,243,255,0.2); border:1px solid var(--cyan);">💎</div>
-              <div>
-                <div style="font-weight:bold; color:#fff;">Cyan Orbs</div>
-                <div style="font-size:13px; color:var(--text-muted);">Grants score bonus and increments your combo multiplier up to 20x.</div>
-              </div>
-            </div>
-            <div class="preview-card">
-              <div class="preview-badge" style="background:rgba(255,0,170,0.2); border:1px solid var(--magenta);">🛡️</div>
-              <div>
-                <div style="font-weight:bold; color:#fff;">Magenta Shield</div>
-                <div style="font-size:13px; color:var(--text-muted);">Equips a 3D wireframe bubble that absorbs one hazard collision.</div>
-              </div>
-            </div>
-            <div class="preview-card">
-              <div class="preview-badge" style="background:rgba(255,230,0,0.2); border:1px solid var(--yellow);">💣</div>
-              <div>
-                <div style="font-weight:bold; color:#fff;">Yellow EMP Bomb</div>
-                <div style="font-size:13px; color:var(--text-muted);">Instantly refills Nitro and clears all active screen hazards.</div>
+                <div style="font-weight:bold; color:#fff;">Right Lanes: Hazard Path</div>
+                <div style="font-size:13px; color:var(--text-muted);">Heavy traffic density &amp; homing hunters with maximum score rewards.</div>
               </div>
             </div>
           </div>
         </div>
 
         <div style="text-align:center; margin-top:32px;">
-          <a href="#play" class="btn-primary">GOT IT, LET'S DRIVE</a>
+          <a href="#play" class="btn-primary">START DRIVING NOW</a>
         </div>
       </div>
     </section>
 
-    <!-- 3. GAME VIEW (#play) -->
+    <!-- 4. GAME VIEW (#play) -->
     <section id="view-play" class="view-page" style="padding:0;">
       <!-- Layered in main.js HUD DOM -->
     </section>
 
-    <!-- 4. LEADERBOARD VIEW (#leaderboard) -->
+    <!-- 5. LEADERBOARD VIEW (#leaderboard) -->
     <section id="view-leaderboard" class="view-page">
       <div class="content-wrapper">
         <h2 class="page-title">TOP DRIVERS LEADERBOARD</h2>
@@ -198,19 +204,16 @@
       </div>
     </section>
 
-    <!-- 5. GARAGE VIEW (#garage) -->
+    <!-- 6. GARAGE VIEW (#garage) -->
     <section id="view-garage" class="view-page">
       <div class="content-wrapper">
         <h2 class="page-title">CAR GARAGE</h2>
         <p class="page-subtitle">Unlock and select custom neon vehicle skins.</p>
-
-        <div id="garageGrid" class="garage-grid">
-          <!-- Populated via main.js -->
-        </div>
+        <div id="garageGrid" class="garage-grid"></div>
       </div>
     </section>
 
-    <!-- 6. SETTINGS VIEW (#settings) -->
+    <!-- 7. SETTINGS VIEW (#settings) -->
     <section id="view-settings" class="view-page">
       <div class="content-wrapper">
         <h2 class="page-title">GAME SETTINGS</h2>
@@ -240,8 +243,8 @@
           </div>
 
           <div class="setting-row" style="border:none; margin-top:20px; flex-direction:column; align-items:flex-start; gap:12px;">
-            <div style="font-weight:bold; color:#ff0044;">Reset Game Progress</div>
-            <div style="font-size:13px; color:var(--text-muted);">Clears saved high scores, unlocked garage cars, and custom settings.</div>
+            <div style="font-weight:bold; color:#ff0044;">Reset Campaign &amp; Game Data</div>
+            <div style="font-size:13px; color:var(--text-muted);">Clears saved high scores, campaign world map progress, and garage skins.</div>
             <button id="resetDataBtn" class="btn-secondary" style="border-color:#ff0044; color:#ff0044;">RESET ALL PROGRESS</button>
           </div>
         </div>
@@ -249,6 +252,16 @@
     </section>
 
   </main>
+
+  <!-- In-Race Fork Warning Banner Overlay -->
+  <div id="fork-banner">
+    ⚠️ FORK AHEAD — CHOOSE YOUR LANE ⚠️
+    <div class="fork-options">
+      <span class="fork-opt" style="border-left:3px solid var(--green);">LEFT: SHORTCUT</span>
+      <span class="fork-opt" style="border-left:3px solid var(--cyan);">CENTER: HIGHWAY</span>
+      <span class="fork-opt" style="border-left:3px solid #ff0044;">RIGHT: HAZARD</span>
+    </div>
+  </div>
 
   <!-- HUD Layer Layered Over 3D Canvas (Active during #play) -->
   <div id="ui-container" style="display:none;">
@@ -276,6 +289,7 @@
 
       <div class="hud-panel" style="flex-direction:column; align-items:flex-end;">
         <div id="combo-display"></div>
+        <div id="mode-hud-meter" class="hud-mode-meter">ZONE: NEON DISTRICT</div>
         <div id="shield-bar-container">🛡️ SHIELD ACTIVE</div>
       </div>
     </div>
@@ -304,7 +318,7 @@
 
   <!-- Game Over Modal -->
   <div id="gameOverModal" class="modal-overlay hidden">
-    <h1 class="title-glow" style="background: linear-gradient(180deg, #ff0055 0%, #ff7700 100%); -webkit-background-clip: text;">RUN CRASHED</h1>
+    <h1 id="gameOverTitle" class="title-glow" style="background: linear-gradient(180deg, #ff0055 0%, #ff7700 100%); -webkit-background-clip: text;">RUN CRASHED</h1>
 
     <div class="card-panel" style="text-align:center;">
       <div style="font-family:'Orbitron'; font-size:14px; color:#799ec2;">FINAL SCORE</div>
@@ -313,7 +327,7 @@
 
       <div style="display:flex; gap:12px; justify-content:center;">
         <button id="retryBtn" class="cyber-btn">RETRY RUN</button>
-        <a href="#home" class="cyber-btn" style="border-color:var(--text-muted); color:var(--text-muted);">MAIN MENU</a>
+        <a href="#map" class="cyber-btn" style="border-color:var(--text-muted); color:var(--text-muted);">WORLD MAP</a>
       </div>
     </div>
   </div>
@@ -327,7 +341,7 @@
 
   <!-- Three.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Game Engine & SPA Router -->
+  <!-- Main Game Engine -->
   <script src="main.js"></script>
 </body>
 </html>
