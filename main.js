@@ -221,6 +221,7 @@
       document.getElementById('gameOverModal').classList.add('hidden');
       document.getElementById('highScoreModal').classList.add('hidden');
       document.getElementById('confirmModal').classList.add('hidden');
+      updatePlaybackControlsHUD();
     }
 
     if (viewId === 'home') updateHomeRibbon();
@@ -240,22 +241,38 @@
   }
 
   function updatePlaybackControlsHUD() {
-    const btnPlay = document.getElementById('btn-hud-play');
-    const btnPause = document.getElementById('btn-hud-pause');
-    const btnResume = document.getElementById('btn-hud-resume');
+    const btnTopPlay = document.getElementById('btn-top-play');
+    const btnTopPause = document.getElementById('btn-top-pause');
+    const btnTopResume = document.getElementById('btn-top-resume');
+
+    const btnHudPlay = document.getElementById('btn-hud-play');
+    const btnHudPause = document.getElementById('btn-hud-pause');
+    const btnHudResume = document.getElementById('btn-hud-resume');
 
     if (!isPlaying) {
-      btnPlay.style.display = 'flex';
-      btnPause.style.display = 'none';
-      btnResume.style.display = 'none';
+      btnTopPlay.style.display = 'inline-flex';
+      btnTopPause.style.display = 'none';
+      btnTopResume.style.display = 'none';
+
+      btnHudPlay.style.display = 'inline-flex';
+      btnHudPause.style.display = 'none';
+      btnHudResume.style.display = 'none';
     } else if (isPaused) {
-      btnPlay.style.display = 'none';
-      btnPause.style.display = 'none';
-      btnResume.style.display = 'flex';
+      btnTopPlay.style.display = 'none';
+      btnTopPause.style.display = 'none';
+      btnTopResume.style.display = 'inline-flex';
+
+      btnHudPlay.style.display = 'none';
+      btnHudPause.style.display = 'none';
+      btnHudResume.style.display = 'inline-flex';
     } else {
-      btnPlay.style.display = 'none';
-      btnPause.style.display = 'flex';
-      btnResume.style.display = 'none';
+      btnTopPlay.style.display = 'none';
+      btnTopPause.style.display = 'inline-flex';
+      btnTopResume.style.display = 'none';
+
+      btnHudPlay.style.display = 'none';
+      btnHudPause.style.display = 'inline-flex';
+      btnHudResume.style.display = 'none';
     }
   }
 
@@ -289,10 +306,15 @@
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
 
-    // Attach Playback Button Handlers
+    // Attach Top Header & HUD Playback Control Listeners
+    document.getElementById('btn-top-play').addEventListener('click', () => { window.location.hash = '#play'; startRace(); });
+    document.getElementById('btn-top-pause').addEventListener('click', togglePause);
+    document.getElementById('btn-top-resume').addEventListener('click', togglePause);
+
     document.getElementById('btn-hud-play').addEventListener('click', startRace);
     document.getElementById('btn-hud-pause').addEventListener('click', togglePause);
     document.getElementById('btn-hud-resume').addEventListener('click', togglePause);
+
     setupHighScoreModalHandlers();
   }
 
@@ -859,7 +881,6 @@
       Storage.setSettings(cfg);
     };
 
-    // Custom In-Page Confirm Modal for Reset Progress
     const resetBtn = document.getElementById('resetDataBtn');
     const confirmModal = document.getElementById('confirmModal');
     const btnConfirm = document.getElementById('btnConfirmAction');
@@ -886,7 +907,7 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  document.getElementById('startRaceBtn').addEventListener('click', () => window.location.hash = '#play');
+  document.getElementById('startRaceBtn').addEventListener('click', () => { window.location.hash = '#play'; startRace(); });
   document.getElementById('retryBtn').addEventListener('click', startRace);
   document.getElementById('resumeBtn').addEventListener('click', togglePause);
 

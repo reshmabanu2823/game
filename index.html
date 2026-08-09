@@ -25,7 +25,14 @@
       </ul>
     </nav>
 
-    <a href="#play" id="startRaceBtn" class="nav-cta">PLAY NOW</a>
+    <!-- Top Playback Controls Cluster in Header -->
+    <div style="display:flex; align-items:center; gap:12px;">
+      <div id="nav-playback-controls" style="display:flex; gap:8px;">
+        <button id="btn-top-play" class="playback-btn-top btn-top-play">▶ START RACE</button>
+        <button id="btn-top-pause" class="playback-btn-top btn-top-pause" style="display:none;">⏸ PAUSE</button>
+        <button id="btn-top-resume" class="playback-btn-top btn-top-resume" style="display:none;">▶ RESUME</button>
+      </div>
+    </div>
   </header>
 
   <!-- 3D WebGL Canvas Container -->
@@ -71,7 +78,7 @@
         </div>
 
         <footer>
-          Neon Highway Campaign Edition v3.5 · Built with Three.js &amp; WebGL
+          Neon Highway Campaign Edition v4.0 · Built with Three.js &amp; WebGL
         </footer>
       </div>
     </section>
@@ -285,16 +292,16 @@
         </div>
       </div>
 
-      <!-- Playback Controls Cluster (Top-Right HUD) -->
+      <!-- Playback Controls Cluster in HUD Panel -->
       <div class="hud-panel" style="gap:12px;">
         <div id="combo-display"></div>
         <div id="mode-hud-meter" class="hud-mode-meter">ZONE: NEON DISTRICT</div>
         <div id="shield-bar-container">🛡️ SHIELD ACTIVE</div>
 
-        <div id="hud-playback-controls">
-          <button id="btn-hud-play" class="playback-btn" title="Start Race">▶</button>
-          <button id="btn-hud-pause" class="playback-btn" style="display:none;" title="Pause (P)">⏸</button>
-          <button id="btn-hud-resume" class="playback-btn" style="display:none;" title="Resume (P)">▶</button>
+        <div id="hud-playback-controls" style="display:flex; gap:8px; pointer-events:auto;">
+          <button id="btn-hud-play" class="playback-btn-top btn-top-play">▶ PLAY</button>
+          <button id="btn-hud-pause" class="playback-btn-top btn-top-pause" style="display:none;">⏸ PAUSE</button>
+          <button id="btn-hud-resume" class="playback-btn-top btn-top-resume" style="display:none;">▶ RESUME</button>
         </div>
       </div>
     </div>
@@ -321,7 +328,7 @@
     </div>
   </div>
 
-  <!-- Custom High Score Input Modal (Replaces browser prompt()) -->
+  <!-- Custom High Score Input Modal -->
   <div id="highScoreModal" class="modal-overlay hidden">
     <div class="card-panel" style="text-align:center;">
       <h1 class="title-glow" style="font-size:32px;">NEW HIGH SCORE!</h1>
@@ -336,7 +343,7 @@
     </div>
   </div>
 
-  <!-- Custom Confirmation Modal (Replaces browser confirm()) -->
+  <!-- Custom Confirmation Modal -->
   <div id="confirmModal" class="modal-overlay hidden">
     <div class="card-panel" style="text-align:center;">
       <h1 id="confirmTitle" class="title-glow" style="font-size:28px; background:linear-gradient(180deg, #ff0055 0%, #ff7700 100%); -webkit-background-clip:text;">RESET PROGRESS?</h1>
