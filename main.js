@@ -750,6 +750,91 @@
     obstacles.push({ mesh, isHunter, isDestructible, speedOffset: isHunter ? 1.5 : rand(-0.5, 0.5), laneX: x, spawnCurveX: roadCurveX });
   }
 
+  // --- POWER PICKUP 3D MESH & SPRITE GENERATORS ---
+  function createPowerIconSprite(iconSymbol, glowHexColor) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+
+    // Glowing badge circle
+    ctx.beginPath();
+    ctx.arc(64, 64, 50, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(10, 14, 22, 0.88)';
+    ctx.fill();
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = glowHexColor;
+    ctx.shadowColor = glowHexColor;
+    ctx.shadowBlur = 14;
+    ctx.stroke();
+
+    // Icon symbol text
+    ctx.font = '54px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = glowHexColor;
+    ctx.shadowBlur = 18;
+    ctx.fillText(iconSymbol, 64, 66);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
+    const sprite = new THREE.Sprite(spriteMat);
+    sprite.scale.set(2.4, 2.4, 1);
+    sprite.position.y = 1.9;
+    return sprite;
+  }
+
+  function createPower3DMesh(pKey) {
+    const pt = POWER_TYPES[pKey] || POWER_TYPES.NITRO;
+    const group = new THREE.Group();
+    let baseMesh;
+
+    if (pKey === 'NITRO') {
+      const geom = new THREE.ConeGeometry(0.65, 1.3, 4);
+      const mat = new THREE.MeshStandardMaterial({ color: pt.color, roughness: 0.1, metalness: 0.9 });
+      baseMesh = new THREE.Mesh(geom, mat);
+      const topCone = new THREE.Mesh(new THREE.ConeGeometry(0.65, 1.3, 4), mat);
+      topCone.rotation.x = Math.PI;
+      topCone.position.y = 0.5;
+      baseMesh.add(topCone);
+    } else if (pKey === 'PHASE') {
+      const geom = new THREE.CylinderGeometry(0.6, 0.6, 1.2, 12);
+      const mat = new THREE.MeshStandardMaterial({ color: pt.color, roughness: 0.1, metalness: 0.8, transparent: true, opacity: 0.65 });
+      baseMesh = new THREE.Mesh(geom, mat);
+      const innerCore = new THREE.Mesh(new THREE.SphereGeometry(0.4, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+      baseMesh.add(innerCore);
+    } else if (pKey === 'EMP') {
+      const geom = new THREE.TorusGeometry(0.65, 0.15, 8, 16);
+      const mat = new THREE.MeshStandardMaterial({ color: pt.color, roughness: 0.2, metalness: 0.9 });
+      baseMesh = new THREE.Mesh(geom, mat);
+      const dish = new THREE.Mesh(new THREE.SphereGeometry(0.4, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), mat);
+      dish.rotation.x = Math.PI;
+      baseMesh.add(dish);
+    } else if (pKey === 'PHOENIX') {
+      const geom = new THREE.OctahedronGeometry(0.85);
+      geom.scale(0.8, 1.5, 0.8);
+      const mat = new THREE.MeshStandardMaterial({ color: pt.color, roughness: 0.1, metalness: 0.9 });
+      baseMesh = new THREE.Mesh(geom, mat);
+    } else {
+      const geom = new THREE.OctahedronGeometry(0.8);
+      const mat = new THREE.MeshStandardMaterial({ color: pt.color, roughness: 0.2, metalness: 0.8 });
+      baseMesh = new THREE.Mesh(geom, mat);
+    }
+
+    group.add(baseMesh);
+
+    // Glowing point light matching power color
+    const ptLight = new THREE.PointLight(pt.color, 2.2, 9);
+    group.add(ptLight);
+
+    // Floating 3D Icon Sprite facing camera
+    const sprite = createPowerIconSprite(pt.icon, pt.glowHex);
+    group.add(sprite);
+
+    return group;
+  }
+
   function spawnPickup() {
     const laneIdx = Math.floor(rand(0, LANES.length));
     const x = LANES[laneIdx];
@@ -759,48 +844,42 @@
     const mode = Storage.getSelectedMode();
     const isPowerDisabled = mode === 'zerodmg';
 
-    // Zone-weighted power spawn chance
-    const zonePowerBonus = { district: 0, desert: 0.01, rain: 0.01, orbital: 0.025 };
-    const powerChance = isPowerDisabled ? 0 : (0.06 + (zonePowerBonus[activeZoneId] || 0));
-
+    // 35% chance to spawn a random bankable power pickup on the road
+    const powerChance = isPowerDisabled ? 0 : 0.35;
     const roll = Math.random();
-    let type = 'ORB', color = 0x00e5ff, geom;
+
+    let mesh, type;
 
     if (roll < powerChance) {
-      // Spawn a bankable power pickup — rarer than regular pickups
-      const powerKeys = Object.keys(POWER_TYPES);
-      // Phoenix shard even rarer — only 15% of power spawns
-      const powerRoll = Math.random();
-      let pKey;
-      if (powerRoll < 0.15) pKey = 'PHOENIX';
-      else if (powerRoll < 0.42) pKey = 'EMP';
-      else if (powerRoll < 0.70) pKey = 'NITRO';
-      else pKey = 'PHASE';
+      // Pick randomly from all 4 power types
+      const powerKeys = ['NITRO', 'PHASE', 'EMP', 'PHOENIX'];
+      const pKey = powerKeys[Math.floor(Math.random() * powerKeys.length)];
 
-      const pt = POWER_TYPES[pKey];
-      color = pt.color;
-      // Power pickups use a distinctive star/gem shape
-      geom = new THREE.OctahedronGeometry(0.9);
+      mesh = createPower3DMesh(pKey);
       type = 'POWER_' + pKey;
-    } else if (roll < powerChance + 0.60) {
-      type = 'ORB';    color = 0x00e5ff; geom = new THREE.OctahedronGeometry(0.7);
-    } else if (roll < powerChance + 0.75) {
-      type = 'SHIELD'; color = 0xff007f; geom = new THREE.TorusGeometry(0.6, 0.2, 8, 16);
+    } else if (roll < powerChance + 0.45) {
+      const geom = new THREE.OctahedronGeometry(0.7);
+      const mat = new THREE.MeshStandardMaterial({ color: 0x00e5ff, roughness: 0.2, metalness: 0.8 });
+      mesh = new THREE.Mesh(geom, mat);
+      type = 'ORB';
+    } else if (roll < powerChance + 0.55) {
+      const geom = new THREE.TorusGeometry(0.6, 0.2, 8, 16);
+      const mat = new THREE.MeshStandardMaterial({ color: 0xff007f, roughness: 0.2, metalness: 0.8 });
+      mesh = new THREE.Mesh(geom, mat);
+      type = 'SHIELD';
     } else {
-      type = 'BOMB';   color = 0xffc800; geom = new THREE.IcosahedronGeometry(0.7);
+      const geom = new THREE.IcosahedronGeometry(0.7);
+      const mat = new THREE.MeshStandardMaterial({ color: 0xffc800, roughness: 0.2, metalness: 0.8 });
+      mesh = new THREE.Mesh(geom, mat);
+      type = 'BOMB';
     }
 
-    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.2, metalness: 0.8 });
-    const mesh = new THREE.Mesh(geom, mat);
-    // Add a pulsing point light to power pickups so they visually stand out
-    if (type.startsWith('POWER_')) {
-      const ptLight = new THREE.PointLight(color, 1.5, 6);
-      mesh.add(ptLight);
-    }
-    mesh.position.set(x + roadCurveX, 1.2, z);
+    if (!mesh.position.y) mesh.position.y = 1.2;
+    mesh.position.set(x + roadCurveX, mesh.position.y, z);
     scene.add(mesh);
     pickups.push({ mesh, type, laneX: x, spawnCurveX: roadCurveX });
   }
+
 
   // --- POWER INVENTORY HELPERS ---
   function addPowerToInventory(powerKey) {
