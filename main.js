@@ -275,6 +275,24 @@
   let collectedOrbs = 0;
   let zeroDamageHit = false;
 
+  // --- POWER INVENTORY SYSTEM ---
+  const POWER_TYPES = {
+    NITRO:   { id: 'NITRO',   label: 'Nitro Burst',   color: 0xffaa00, glowHex: '#ffaa00', icon: '⚡', key: '1', desc: 'Instant max-speed surge' },
+    PHASE:   { id: 'PHASE',   label: 'Phase Shift',   color: 0x00e5ff, glowHex: '#00e5ff', icon: '👻', key: '2', desc: 'Pass through 1 obstacle' },
+    EMP:     { id: 'EMP',     label: 'EMP Pulse',     color: 0x9900ff, glowHex: '#9900ff', icon: '📡', key: '3', desc: 'Stuns hunter vehicles' },
+    PHOENIX: { id: 'PHOENIX', label: 'Phoenix Shard', color: 0xff4400, glowHex: '#ff4400', icon: '🔥', key: 'auto', desc: 'Auto-saves on fatal crash' }
+  };
+
+  const MAX_POWER_SLOTS = 3;
+  let powerInventory = [];          // array of POWER_TYPES keys, max 3
+  let phaseShiftActive = false;     // true = player is intangible
+  let phaseShiftTimer = 0;          // frames remaining
+  let empActiveTimer = 0;           // frames hunters are stunned
+  let magnetActiveTimer = 0;        // frames magnet is on
+  let phoenixSavesUsed = 0;         // how many phoenix shards fired this run
+  let phoenixInvincTimer = 0;       // post-save brief invincibility frames
+  let powerOnboardSeen = new Set(); // which power types have shown hint once
+
   let forkWarningTime = 0;
   let activeBranchType = 'NORMAL';
 
@@ -737,17 +755,212 @@
     const x = LANES[laneIdx];
     const z = -ROAD_LENGTH + 50;
 
+    const activeZoneId = Storage.getSelectedZone();
+    const mode = Storage.getSelectedMode();
+    const isPowerDisabled = mode === 'zerodmg';
+
+    // Zone-weighted power spawn chance
+    const zonePowerBonus = { district: 0, desert: 0.01, rain: 0.01, orbital: 0.025 };
+    const powerChance = isPowerDisabled ? 0 : (0.06 + (zonePowerBonus[activeZoneId] || 0));
+
     const roll = Math.random();
     let type = 'ORB', color = 0x00e5ff, geom;
-    if (roll < 0.7) { type = 'ORB'; color = 0x00e5ff; geom = new THREE.OctahedronGeometry(0.7); }
-    else if (roll < 0.85) { type = 'SHIELD'; color = 0xff007f; geom = new THREE.TorusGeometry(0.6, 0.2, 8, 16); }
-    else { type = 'BOMB'; color = 0xffc800; geom = new THREE.IcosahedronGeometry(0.7); }
+
+    if (roll < powerChance) {
+      // Spawn a bankable power pickup — rarer than regular pickups
+      const powerKeys = Object.keys(POWER_TYPES);
+      // Phoenix shard even rarer — only 15% of power spawns
+      const powerRoll = Math.random();
+      let pKey;
+      if (powerRoll < 0.15) pKey = 'PHOENIX';
+      else if (powerRoll < 0.42) pKey = 'EMP';
+      else if (powerRoll < 0.70) pKey = 'NITRO';
+      else pKey = 'PHASE';
+
+      const pt = POWER_TYPES[pKey];
+      color = pt.color;
+      // Power pickups use a distinctive star/gem shape
+      geom = new THREE.OctahedronGeometry(0.9);
+      type = 'POWER_' + pKey;
+    } else if (roll < powerChance + 0.60) {
+      type = 'ORB';    color = 0x00e5ff; geom = new THREE.OctahedronGeometry(0.7);
+    } else if (roll < powerChance + 0.75) {
+      type = 'SHIELD'; color = 0xff007f; geom = new THREE.TorusGeometry(0.6, 0.2, 8, 16);
+    } else {
+      type = 'BOMB';   color = 0xffc800; geom = new THREE.IcosahedronGeometry(0.7);
+    }
 
     const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.2, metalness: 0.8 });
     const mesh = new THREE.Mesh(geom, mat);
+    // Add a pulsing point light to power pickups so they visually stand out
+    if (type.startsWith('POWER_')) {
+      const ptLight = new THREE.PointLight(color, 1.5, 6);
+      mesh.add(ptLight);
+    }
     mesh.position.set(x + roadCurveX, 1.2, z);
     scene.add(mesh);
     pickups.push({ mesh, type, laneX: x, spawnCurveX: roadCurveX });
+  }
+
+  // --- POWER INVENTORY HELPERS ---
+  function addPowerToInventory(powerKey) {
+    if (powerInventory.length >= MAX_POWER_SLOTS) {
+      // Inventory full — flash the tray red briefly
+      const tray = document.getElementById('power-tray');
+      if (tray) { tray.style.border = '1px solid #ff4455'; setTimeout(() => tray.style.border = '', 400); }
+      audio.playPickup(200); // low thud = inventory full
+      return false;
+    }
+    powerInventory.push(powerKey);
+    audio.playPickup(780);
+    renderPowerTray();
+
+    // Onboarding hint — show once per new power type
+    if (!powerOnboardSeen.has(powerKey) && powerKey !== 'PHOENIX') {
+      powerOnboardSeen.add(powerKey);
+      const pt = POWER_TYPES[powerKey];
+      showPowerHint(`${pt.icon} ${pt.label} banked! Press ${pt.key} to activate.`);
+    } else if (!powerOnboardSeen.has(powerKey) && powerKey === 'PHOENIX') {
+      powerOnboardSeen.add(powerKey);
+      showPowerHint('🔥 Phoenix Shard banked! Auto-saves 1 fatal crash.');
+    }
+    return true;
+  }
+
+  function renderPowerTray() {
+    const tray = document.getElementById('power-tray');
+    if (!tray) return;
+    tray.innerHTML = '';
+    for (let i = 0; i < MAX_POWER_SLOTS; i++) {
+      const slot = document.createElement('div');
+      slot.className = 'power-slot' + (i < powerInventory.length ? ' filled' : '');
+      if (i < powerInventory.length) {
+        const pk = powerInventory[i];
+        const pt = POWER_TYPES[pk];
+        slot.title = pt.label;
+        slot.style.borderColor = pt.glowHex;
+        slot.style.boxShadow = `0 0 8px ${pt.glowHex}55`;
+        slot.innerHTML = `<span class="power-icon">${pt.icon}</span><span class="power-key-badge">${pt.key === 'auto' ? '★' : pt.key}</span>`;
+      } else {
+        slot.innerHTML = `<span style="opacity:0.25; font-size:11px;">—</span>`;
+      }
+      tray.appendChild(slot);
+    }
+  }
+
+  function showPowerHint(msg) {
+    const el = document.getElementById('power-hint-bar');
+    if (!el) return;
+    el.textContent = msg;
+    el.style.opacity = '1';
+    clearTimeout(el._hideTimeout);
+    el._hideTimeout = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+  }
+
+  function activatePower(slotIndex) {
+    if (!isPlaying || isPaused) return;
+    const mode = Storage.getSelectedMode();
+    if (mode === 'zerodmg') return; // no powers in zero damage mode
+    if (slotIndex >= powerInventory.length) return;
+
+    const powerKey = powerInventory[slotIndex];
+    const pt = POWER_TYPES[powerKey];
+
+    // Remove from inventory
+    powerInventory.splice(slotIndex, 1);
+    renderPowerTray();
+
+    if (powerKey === 'NITRO') {
+      // Nitro Burst — force max speed for 4 seconds, boost meter fills, visual flash
+      boostAmount = 100;
+      isBoosting = true;
+      currentSpeed = MAX_SPEED;
+      audio.playBoost();
+      flashScreen('#ffaa00', 0.35);
+      setTimeout(() => { isBoosting = false; }, 4000);
+      showPowerHint('⚡ Nitro Burst — max speed for 4s!');
+
+    } else if (powerKey === 'PHASE') {
+      // Phase Shift — intangible for 3 seconds
+      phaseShiftActive = true;
+      phaseShiftTimer = 180; // 3 seconds at 60fps
+      flashScreen('#00e5ff', 0.45);
+      if (playerBodyMesh) playerBodyMesh.material.transparent = true;
+      if (playerBodyMesh) playerBodyMesh.material.opacity = 0.35;
+      audio.playPickup(1100);
+      showPowerHint('👻 Phase Shift active — intangible for 3s!');
+
+    } else if (powerKey === 'EMP') {
+      // EMP Pulse — stun hunters for 5 seconds
+      empActiveTimer = 300;
+      flashScreen('#9900ff', 0.5);
+      audio.playPickup(330);
+      // Visually tint all hunters dark
+      obstacles.forEach(o => {
+        if (o.isHunter && o.mesh.material) {
+          o.mesh.material.color.setHex(0x333344);
+          o.isEmpStunned = true;
+        }
+      });
+      showPowerHint('📡 EMP Pulse — hunters stunned for 5s!');
+
+    } else if (powerKey === 'MAGNET') {
+      magnetActiveTimer = 300;
+      flashScreen('#00ff88', 0.4);
+      audio.playPickup(660);
+      showPowerHint('🧲 Magnet active — orbs pulled toward you!');
+    }
+  }
+
+  function flashScreen(hexColor, intensity = 0.5) {
+    const overlay = document.getElementById('screen-flash');
+    if (!overlay) return;
+    overlay.style.backgroundColor = hexColor;
+    overlay.style.opacity = intensity;
+    requestAnimationFrame(() => {
+      overlay.style.transition = 'opacity 0.5s ease';
+      overlay.style.opacity = '0';
+      setTimeout(() => { overlay.style.transition = ''; }, 550);
+    });
+  }
+
+  function triggerPhoenixSave() {
+    // Consume one Phoenix Shard and survive the crash
+    const idx = powerInventory.indexOf('PHOENIX');
+    if (idx === -1) return false;
+    powerInventory.splice(idx, 1);
+    phoenixSavesUsed++;
+    renderPowerTray();
+
+    // Slow-motion flash moment
+    flashScreen('#ff4400', 0.75);
+    audio.playExplosion(); // dramatic boom
+    setTimeout(() => audio.playPickup(880), 300); // then revival chime
+
+    // Show SAVED! banner
+    const saved = document.getElementById('phoenix-saved-banner');
+    if (saved) {
+      saved.style.display = 'flex';
+      setTimeout(() => { saved.style.display = 'none'; }, 2200);
+    }
+
+    // Brief invincibility window (3 seconds)
+    phoenixInvincTimer = 180;
+    shieldBubbleMesh.visible = true;
+    cameraShake = 1.5;
+    currentSpeed = BASE_SPEED; // reset to base speed for safety window
+
+    // Clear crashed obstacle so player has room
+    if (obstacles.length > 0) {
+      const nearest = obstacles.reduce((best, o) => {
+        const d = Math.abs(o.mesh.position.z - playerCar.position.z);
+        return d < Math.abs(best.mesh.position.z - playerCar.position.z) ? o : best;
+      }, obstacles[0]);
+      scene.remove(nearest.mesh);
+      obstacles.splice(obstacles.indexOf(nearest), 1);
+    }
+
+    return true;
   }
 
   function onKeyDown(e) {
@@ -758,6 +971,10 @@
       if (k === 'arrowright' || k === 'd') { if (targetLane < LANES.length - 1) targetLane++; }
       if (k === ' ') { isBoosting = true; audio.playBoost(); }
       if (k === 'p' || k === 'escape') togglePause();
+      // Power activation keys
+      if (k === 'q' || k === '1') activatePower(0);
+      if (k === '2') activatePower(1);
+      if (k === '3') activatePower(2);
     }
   }
 
@@ -1006,7 +1223,8 @@
       const obsCurveDelta = roadCurveX - obs.spawnCurveX;
       obs.mesh.position.x = obs.laneX + obsCurveDelta;
 
-      if (obs.isHunter && obs.mesh.position.z < -20) {
+      // Hunter steering is disabled during EMP stun
+      if (obs.isHunter && !obs.isEmpStunned && obs.mesh.position.z < -20) {
         const diffX = playerCar.position.x - obs.mesh.position.x;
         obs.mesh.position.x += Math.sign(diffX) * 0.08;
       }
@@ -1020,6 +1238,14 @@
           audio.playExplosion();
           triggerGameOver(false, 'Zero Damage Challenge Failed!');
           return;
+        }
+
+        if (phaseShiftActive || phoenixInvincTimer > 0) {
+          // Intangible — pass through with a shimmer flash
+          flashScreen('#00e5ff', 0.3);
+          scene.remove(obs.mesh);
+          obstacles.splice(i, 1);
+          continue;
         }
 
         if (isBoosting && obs.isDestructible) {
@@ -1039,6 +1265,10 @@
           obstacles.splice(i, 1);
           continue;
         } else {
+          // Check for Phoenix Shard before ending run
+          if (powerInventory.includes('PHOENIX') && mode !== 'zerodmg') {
+            if (triggerPhoenixSave()) continue;
+          }
           audio.playExplosion();
           cameraShake = 1.2;
           triggerGameOver(false);
@@ -1055,6 +1285,17 @@
       p.mesh.rotation.y += 0.05;
       // Track road curve so pickups stay on the road surface
       p.mesh.position.x = p.laneX + (roadCurveX - p.spawnCurveX);
+
+      // Magnet — pull orbs toward player
+      if (magnetActiveTimer > 0 && p.type === 'ORB') {
+        const mx = playerCar.position.x - p.mesh.position.x;
+        const mz = playerCar.position.z - p.mesh.position.z;
+        const dist = Math.sqrt(mx * mx + mz * mz);
+        if (dist < 20) {
+          p.mesh.position.x += mx * 0.08;
+          p.mesh.position.z += mz * 0.08;
+        }
+      }
 
       const dz = Math.abs(p.mesh.position.z - playerCar.position.z);
       const dx = Math.abs(p.mesh.position.x - playerCar.position.x);
@@ -1077,6 +1318,10 @@
           obstacles.forEach(o => scene.remove(o.mesh));
           obstacles = [];
           score += 500;
+        } else if (p.type.startsWith('POWER_')) {
+          // Bankable power — add to inventory
+          const powerKey = p.type.replace('POWER_', '');
+          addPowerToInventory(powerKey);
         }
         scene.remove(p.mesh);
         pickups.splice(i, 1);
@@ -1084,6 +1329,27 @@
       }
 
       if (p.mesh.position.z > 20) { scene.remove(p.mesh); pickups.splice(i, 1); }
+    }
+
+    // --- POWER TIMERS ---
+    if (phaseShiftTimer > 0) {
+      phaseShiftTimer--;
+      if (phaseShiftTimer === 0) {
+        phaseShiftActive = false;
+        if (playerBodyMesh) { playerBodyMesh.material.transparent = false; playerBodyMesh.material.opacity = 1.0; }
+      }
+    }
+    if (empActiveTimer > 0) {
+      empActiveTimer--;
+      if (empActiveTimer === 0) {
+        // Restore hunter colors
+        obstacles.forEach(o => { if (o.isEmpStunned) { o.mesh.material.color.setHex(0x990000); o.isEmpStunned = false; } });
+      }
+    }
+    if (magnetActiveTimer > 0) magnetActiveTimer--;
+    if (phoenixInvincTimer > 0) {
+      phoenixInvincTimer--;
+      if (phoenixInvincTimer === 0) { shieldBubbleMesh.visible = false; }
     }
 
     if (comboTimer > 0) { comboTimer--; if (comboTimer === 0) combo = 1; }
@@ -1166,6 +1432,13 @@
     targetLane = 2; playerPosX = 0; shieldActive = false; boostAmount = 100;
     collectedOrbs = 0; zeroDamageHit = false; forkWarningTime = 0; activeBranchType = 'NORMAL';
     roadCurveX = 0; roadCurveRate = 0; curveCooldown = 0; cameraLeanX = 0;
+    // Reset power state
+    powerInventory = []; phaseShiftActive = false; phaseShiftTimer = 0;
+    empActiveTimer = 0; magnetActiveTimer = 0; phoenixSavesUsed = 0; phoenixInvincTimer = 0;
+    if (playerBodyMesh) { playerBodyMesh.material.transparent = false; playerBodyMesh.material.opacity = 1.0; }
+    renderPowerTray();
+    document.getElementById('phoenix-saved-banner').style.display = 'none';
+    document.getElementById('power-hint-bar').style.opacity = '0';
 
     currentRunTelemetry = [];
     crashBuffer = [];
@@ -1248,6 +1521,17 @@
     document.getElementById('gameOverTitle').textContent = success ? 'VICTORY!' : 'RUN CRASHED';
     document.getElementById('finalScore').textContent = finalScore;
     document.getElementById('finalBest').textContent = Storage.getBestScore();
+
+    // Phoenix Shard saves summary
+    const phoenixNote = document.getElementById('phoenix-run-note');
+    if (phoenixNote) {
+      if (phoenixSavesUsed > 0) {
+        phoenixNote.textContent = `🔥 Saved by Phoenix Shard ×${phoenixSavesUsed}`;
+        phoenixNote.style.display = 'block';
+      } else {
+        phoenixNote.style.display = 'none';
+      }
+    }
 
     // Show/Hide Watch Replay CTA button based on settings & buffer availability
     const watchReplayBtn = document.getElementById('watchReplayBtn');
