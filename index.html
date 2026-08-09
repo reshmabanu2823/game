@@ -247,12 +247,21 @@
       </div>
     </section>
 
-    <!-- 6. GARAGE VIEW (#garage) -->
+    <!-- 6. GARAGE VIEW WITH SIDE PREVIEW SHOWCASE (#garage) -->
     <section id="view-garage" class="view-page">
       <div class="content-wrapper">
-        <h2 class="page-title">CAR GARAGE</h2>
-        <p class="page-subtitle">Unlock and select custom neon vehicle skins.</p>
-        <div id="garageGrid" class="garage-grid"></div>
+        <h2 class="page-title">CAR GARAGE SHOWROOM</h2>
+        <p class="page-subtitle">Select a vehicle from the grid to view 3D side preview, performance specs, and equip car.</p>
+
+        <div class="garage-container-split">
+          <!-- Side Showcase Preview Stage -->
+          <div id="garageShowcasePanel" class="garage-showcase-panel">
+            <!-- Populated via main.js -->
+          </div>
+
+          <!-- Car Grid -->
+          <div id="garageGrid" class="garage-grid"></div>
+        </div>
       </div>
     </section>
 

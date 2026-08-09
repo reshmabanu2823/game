@@ -1,4 +1,4 @@
-/* NEON HIGHWAY — Grounded Realistic 3D Racing Engine, Suspension Physics & PBR Shaders */
+/* NEON HIGHWAY — Grounded Realistic 3D Racing Engine, Suspension Physics & Garage Showcase */
 
 (() => {
   // --- REALISTIC ZONE CONFIGURATIONS ---
@@ -71,6 +71,8 @@
     { id: 'vaporwave', name: 'Midnight Violet', reqScore: 10000, bodyColor: 0x330066, specularColor: 0x9900ff, desc: 'Unlocked at 10,000 pts. Ultra-violet pearl coat.' },
     { id: 'titan', name: 'Emerald Stealth', reqScore: 20000, bodyColor: 0x05331a, specularColor: 0x00e676, desc: 'Unlocked at 20,000 pts. Emerald carbon weave.' }
   ];
+
+  let previewCarId = Storage.getSelectedCar();
 
   // --- LOCAL STORAGE MANAGER ---
   const Storage = {
@@ -405,7 +407,6 @@
     while (sceneryGroup.children.length > 0) sceneryGroup.remove(sceneryGroup.children[0]);
 
     if (cfg.id === 'district') {
-      // City Building Facades & Streetlamps
       for (let i = -10; i <= 10; i++) {
         if (Math.abs(i) < 2) continue;
         const bGeom = new THREE.BoxGeometry(rand(16, 26), rand(35, 80), rand(16, 26));
@@ -414,7 +415,6 @@
         b.position.set(i * 32, 20, -340 + rand(-20, 20));
         sceneryGroup.add(b);
 
-        // Streetlamp Posts
         const postGeom = new THREE.CylinderGeometry(0.2, 0.2, 8);
         const postMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8 });
         const post = new THREE.Mesh(postGeom, postMat);
@@ -422,7 +422,6 @@
         sceneryGroup.add(post);
       }
     } else if (cfg.id === 'desert') {
-      // Desert Canyon Rock Formations
       for (let i = -10; i <= 10; i++) {
         if (Math.abs(i) < 2) continue;
         const rGeom = new THREE.DodecahedronGeometry(rand(14, 28));
@@ -432,7 +431,6 @@
         sceneryGroup.add(r);
       }
     } else if (cfg.id === 'rain') {
-      // Rain City Wet Highway Towers
       for (let i = -10; i <= 10; i++) {
         if (Math.abs(i) < 2) continue;
         const rGeom = new THREE.BoxGeometry(rand(14, 22), rand(30, 70), rand(14, 22));
@@ -442,7 +440,6 @@
         sceneryGroup.add(r);
       }
     } else if (cfg.id === 'orbital') {
-      // Coastal Mountain Peaks
       for (let i = -10; i <= 10; i++) {
         if (Math.abs(i) < 2) continue;
         const mGeom = new THREE.ConeGeometry(rand(20, 35), rand(40, 75), 5);
@@ -476,7 +473,6 @@
       seg.rotation.x = -Math.PI / 2;
       seg.position.set(0, 0, z);
 
-      // Yellow Shoulder Lines
       [-ROAD_WIDTH/2 + 0.4, ROAD_WIDTH/2 - 0.4].forEach(xPos => {
         const sLineGeom = new THREE.PlaneGeometry(0.3, SEGMENT_LENGTH);
         const sLine = new THREE.Mesh(sLineGeom, shoulderMat);
@@ -485,7 +481,6 @@
         seg.add(sLine);
       });
 
-      // Metallic Side Guardrails
       [-ROAD_WIDTH/2 - 0.2, ROAD_WIDTH/2 + 0.2].forEach(xPos => {
         const railGeom = new THREE.BoxGeometry(0.3, 0.8, SEGMENT_LENGTH);
         const rail = new THREE.Mesh(railGeom, railMat);
@@ -493,7 +488,6 @@
         seg.add(rail);
       });
 
-      // White Lane Markings
       LANES.forEach((xPos, idx) => {
         if (idx === 0 || idx === LANES.length - 1) return;
         const lineGeom = new THREE.PlaneGeometry(0.25, SEGMENT_LENGTH * 0.45);
@@ -513,7 +507,6 @@
   function buildPlayerCar() {
     playerCar = new THREE.Group();
 
-    // Metallic Body Chassis Shell
     const bodyMat = new THREE.MeshStandardMaterial({
       color: 0x222836,
       roughness: 0.25,
@@ -525,7 +518,6 @@
     playerBodyMesh.position.y = 0.55;
     playerCar.add(playerBodyMesh);
 
-    // Aerodynamic Roof Cabin & Tinted Windows
     const glassMat = new THREE.MeshStandardMaterial({
       color: 0x0f172a,
       roughness: 0.1,
@@ -540,14 +532,12 @@
     cabinMesh.position.set(0, 1.1, -0.3);
     playerCar.add(cabinMesh);
 
-    // Front Grille & Headlight Assemblies
     const grilleGeom = new THREE.BoxGeometry(2.0, 0.25, 0.1);
     const grilleMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
     const grille = new THREE.Mesh(grilleGeom, grilleMat);
     grille.position.set(0, 0.5, -2.25);
     playerCar.add(grille);
 
-    // LED Headlight Meshes & SpotLight Beams
     const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
     [-0.85, 0.85].forEach(xPos => {
       const hlGeom = new THREE.BoxGeometry(0.35, 0.15, 0.1);
@@ -568,14 +558,12 @@
     playerCar.add(headlightRightLight);
     playerCar.add(headlightRightLight.target);
 
-    // Rear Taillight Assemblies & Brake Light Material
     playerTaillightMat = new THREE.MeshBasicMaterial({ color: 0xcc0000 });
     const tailGeom = new THREE.BoxGeometry(2.0, 0.15, 0.1);
     const taillights = new THREE.Mesh(tailGeom, playerTaillightMat);
     taillights.position.set(0, 0.65, 2.23);
     playerCar.add(taillights);
 
-    // Detailed 4 Wheel Assemblies (Rubber Tires & Alloy Rims)
     const tireMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.9 });
     const rimMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
 
@@ -595,7 +583,6 @@
     rearLeftWheel = createWheel(); rearLeftWheel.position.set(-1.15, 0.42, 1.4); playerCar.add(rearLeftWheel);
     rearRightWheel = createWheel(); rearRightWheel.position.set(1.15, 0.42, 1.4); playerCar.add(rearRightWheel);
 
-    // Shield Bubble Mesh
     const shieldGeom = new THREE.SphereGeometry(2.8, 16, 16);
     const shieldMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, wireframe: true, transparent: true, opacity: 0.5 });
     shieldBubbleMesh = new THREE.Mesh(shieldGeom, shieldMat);
@@ -607,13 +594,12 @@
     applySelectedCarSkin();
   }
 
-  function applySelectedCarSkin() {
-    const activeId = Storage.getSelectedCar();
+  function applySelectedCarSkin(targetId = null) {
+    const activeId = targetId || previewCarId || Storage.getSelectedCar();
     const skin = CAR_SKINS.find(s => s.id === activeId) || CAR_SKINS[0];
     if (playerBodyMesh) playerBodyMesh.material.color.setHex(skin.bodyColor);
   }
 
-  // --- REALISTIC TRAFFIC & OBSTACLE SPAWNER ---
   function spawnObstacle() {
     const laneIdx = Math.floor(rand(0, LANES.length));
     const x = LANES[laneIdx];
@@ -628,28 +614,23 @@
 
     let mesh;
     if (cfg.id === 'desert' && Math.random() < 0.3) {
-      // Desert Tumbleweed
       const tGeom = new THREE.DodecahedronGeometry(1.2);
       const tMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9 });
       mesh = new THREE.Mesh(tGeom, tMat);
     } else if (cfg.id === 'rain' && Math.random() < 0.25) {
-      // Hydroplane Puddle
       const pGeom = new THREE.CircleGeometry(2.2, 16);
       const pMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.1, metalness: 0.9, side: THREE.DoubleSide });
       mesh = new THREE.Mesh(pGeom, pMat);
       mesh.rotation.x = -Math.PI / 2;
     } else if (isHunter) {
-      // Aggressive Hunter Sports Car (Red Body + Strobe Lights)
       const hGeom = new THREE.BoxGeometry(2.2, 0.8, 4.2);
       const hMat = new THREE.MeshStandardMaterial({ color: 0x990000, roughness: 0.3, metalness: 0.8 });
       mesh = new THREE.Mesh(hGeom, hMat);
     } else if (isDestructible) {
-      // Wooden Cargo Box / Traffic Obstacle
       const dGeom = new THREE.BoxGeometry(2.2, 1.4, 1.4);
       const dMat = new THREE.MeshStandardMaterial({ color: 0xa16207, roughness: 0.8 });
       mesh = new THREE.Mesh(dGeom, dMat);
     } else {
-      // Realistic City Traffic Car (Sedan)
       const rGeom = new THREE.BoxGeometry(2.2, 0.8, 4.2);
       const rMat = new THREE.MeshStandardMaterial({ color: rand(0, 1) > 0.5 ? 0x334155 : 0x475569, roughness: 0.3, metalness: 0.7 });
       mesh = new THREE.Mesh(rGeom, rMat);
@@ -745,35 +726,30 @@
     curveOffset = Math.sin(time * 0.015) * (activeBranchType === 'HAZARD' ? 14 : 8);
     sunMesh.position.x = curveOffset * 1.5;
 
-    // --- REALISTIC VEHICLE STEERING & SUSPENSION PHYSICS ---
     const targetX = LANES[targetLane];
     const steerDelta = targetX - playerPosX;
 
     playerPosX += steerDelta * 0.2;
     playerCar.position.x = playerPosX;
 
-    // Body Roll / Lean & Steering Wheel Angle
     playerCar.rotation.z = -steerDelta * 0.18;
     playerCar.rotation.y = -steerDelta * 0.08;
 
-    // Front Wheel Pivot Angle on Lane Shift
     const wheelTurnAngle = steerDelta * 0.4;
     if (frontLeftWheel) frontLeftWheel.rotation.y = wheelTurnAngle;
     if (frontRightWheel) frontRightWheel.rotation.y = wheelTurnAngle;
 
-    // Wheel Rotation with Speed
     const wheelSpin = (currentSpeed * 0.08);
     if (frontLeftWheel) frontLeftWheel.children[0].rotation.x += wheelSpin;
     if (frontRightWheel) frontRightWheel.children[0].rotation.x += wheelSpin;
     if (rearLeftWheel) rearLeftWheel.children[0].rotation.x += wheelSpin;
     if (rearRightWheel) rearRightWheel.children[0].rotation.x += wheelSpin;
 
-    // Dynamic Taillight & Brake Light Intensity
     if (playerTaillightMat) {
       if (steerDelta !== 0 || !isBoosting) {
-        playerTaillightMat.color.setHex(0xff0000); // Bright Brake Red
+        playerTaillightMat.color.setHex(0xff0000);
       } else {
-        playerTaillightMat.color.setHex(0x660000); // Dim Taillight Red
+        playerTaillightMat.color.setHex(0x660000);
       }
     }
 
@@ -910,6 +886,7 @@
       updateGame();
     } else {
       time += 0.5;
+      if (playerCar) playerCar.rotation.y += 0.015; // Smooth 360 Turntable rotation in Garage/Home view
       roadSegments.forEach(seg => {
         seg.position.z += 1.5;
         if (seg.position.z > 20) seg.position.z -= ROAD_LENGTH;
@@ -1044,37 +1021,85 @@
     });
   }
 
-  // --- GARAGE & LEADERBOARD RENDERERS ---
+  // --- GARAGE & SIDE SHOWCASE PREVIEW STAGE ---
   function renderGarage() {
     const grid = document.getElementById('garageGrid');
+    const showcase = document.getElementById('garageShowcasePanel');
     const bestScore = Storage.getBestScore();
     const activeCar = Storage.getSelectedCar();
 
+    if (!CAR_SKINS.find(s => s.id === previewCarId)) previewCarId = activeCar;
+    const previewCar = CAR_SKINS.find(s => s.id === previewCarId) || CAR_SKINS[0];
+
+    const isPreviewUnlocked = bestScore >= previewCar.reqScore;
+    const isPreviewEquipped = activeCar === previewCar.id;
+
+    // Render Side Showcase Panel
+    showcase.innerHTML = `
+      <div class="turntable-stage">
+        <div style="font-family:'Orbitron'; font-size:11px; color:var(--text-muted); position:absolute; top:12px; left:14px; letter-spacing:2px;">3D SIDE PREVIEW</div>
+        <div style="width:80px; height:32px; background:#${previewCar.bodyColor.toString(16).padStart(6,'0')}; border:2px solid #${previewCar.specularColor.toString(16).padStart(6,'0')}; border-radius:6px; box-shadow:0 0 25px #${previewCar.specularColor.toString(16).padStart(6,'0')}; margin-top:20px;"></div>
+        <div class="turntable-pedestal"></div>
+      </div>
+
+      <h3 style="font-family:'Orbitron'; font-size:22px; color:#fff; margin-bottom:4px;">${previewCar.name}</h3>
+      <div style="font-size:12px; color:var(--yellow); font-family:'Orbitron'; margin-bottom:16px; letter-spacing:1px;">
+        ${isPreviewEquipped ? 'STATUS: EQUIPPED' : isPreviewUnlocked ? 'STATUS: UNLOCKED' : `REQUIRES: ${previewCar.reqScore.toLocaleString()} PTS`}
+      </div>
+
+      <div style="width:100%; text-align:left; margin-bottom:20px; background:rgba(255,255,255,0.03); padding:14px; border-radius:8px; border:1px solid rgba(255,255,255,0.08);">
+        <div class="stat-row">
+          <span style="color:var(--text-muted); font-family:'Orbitron'; font-size:11px;">TOP SPEED</span>
+          <span style="color:#fff; font-family:'Orbitron'; font-weight:bold;">160 KM/H</span>
+        </div>
+        <div class="stat-row">
+          <span style="color:var(--text-muted); font-family:'Orbitron'; font-size:11px;">ACCELERATION</span>
+          <div class="stat-bar-outer"><div class="stat-bar-fill" style="width:${80 + (CAR_SKINS.indexOf(previewCar) * 4)}%;"></div></div>
+        </div>
+        <div class="stat-row" style="margin:0;">
+          <span style="color:var(--text-muted); font-family:'Orbitron'; font-size:11px;">HANDLING</span>
+          <div class="stat-bar-outer"><div class="stat-bar-fill" style="width:${85 + (CAR_SKINS.indexOf(previewCar) * 3)}%;"></div></div>
+        </div>
+      </div>
+
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:20px; line-height:1.5;">${previewCar.desc}</p>
+
+      ${isPreviewUnlocked
+        ? `<button id="equipShowcaseBtn" class="btn-primary" style="width:100%; justify-content:center;">${isPreviewEquipped ? 'EQUIPPED' : 'EQUIP VEHICLE'}</button>`
+        : `<button class="btn-secondary" disabled style="width:100%; opacity:0.5; cursor:not-allowed; justify-content:center;">LOCKED</button>`
+      }
+    `;
+
+    if (isPreviewUnlocked && !isPreviewEquipped) {
+      document.getElementById('equipShowcaseBtn')?.addEventListener('click', () => {
+        Storage.setSelectedCar(previewCar.id);
+        applySelectedCarSkin();
+        renderGarage();
+      });
+    }
+
+    // Render Car Selector Grid
     grid.innerHTML = CAR_SKINS.map(skin => {
       const isUnlocked = bestScore >= skin.reqScore;
-      const isSelected = activeCar === skin.id;
+      const isEquipped = activeCar === skin.id;
+      const isSelected = previewCarId === skin.id;
 
       return `
-        <div class="car-card ${isSelected ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}">
+        <div class="car-card ${isSelected ? 'selected' : ''} ${isEquipped ? 'equipped' : ''} ${!isUnlocked ? 'locked' : ''}" data-id="${skin.id}">
           <div class="car-preview-box">
-            <div style="width:50px; height:20px; background:#${skin.bodyColor.toString(16).padStart(6,'0')}; border:2px solid #${skin.specularColor.toString(16).padStart(6,'0')}; border-radius:4px; box-shadow:0 0 15px #${skin.specularColor.toString(16).padStart(6,'0')};"></div>
+            <div style="width:45px; height:18px; background:#${skin.bodyColor.toString(16).padStart(6,'0')}; border:2px solid #${skin.specularColor.toString(16).padStart(6,'0')}; border-radius:4px; box-shadow:0 0 15px #${skin.specularColor.toString(16).padStart(6,'0')};"></div>
           </div>
           <div class="car-name">${skin.name}</div>
-          <div class="car-condition">${isUnlocked ? 'STATUS: UNLOCKED' : `REQUIRES: ${skin.reqScore.toLocaleString()} PTS`}</div>
-          <p style="font-size:12px; color:var(--text-muted); margin-bottom:16px;">${skin.desc}</p>
-          ${isUnlocked
-            ? `<button class="btn-secondary select-car-btn" data-id="${skin.id}">${isSelected ? 'EQUIPPED' : 'SELECT CAR'}</button>`
-            : `<button class="btn-secondary" disabled style="opacity:0.5; cursor:not-allowed;">LOCKED</button>`
-          }
+          <div class="car-condition">${isEquipped ? 'EQUIPPED' : isUnlocked ? 'UNLOCKED' : `${skin.reqScore.toLocaleString()} PTS`}</div>
         </div>
       `;
     }).join('');
 
-    document.querySelectorAll('.select-car-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const id = e.target.getAttribute('data-id');
-        Storage.setSelectedCar(id);
-        applySelectedCarSkin();
+    document.querySelectorAll('.car-card').forEach(card => {
+      card.addEventListener('click', (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        previewCarId = id;
+        applySelectedCarSkin(id);
         renderGarage();
       });
     });
