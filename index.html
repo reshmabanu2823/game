@@ -1,650 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NEON DRIFT — Cyberpunk Survival</title>
-<style>
-  * { margin:0; padding:0; box-sizing:border-box; user-select:none; }
-  html, body {
-    height:100%; background:#040509; overflow:hidden;
-    font-family: 'Courier New', Consolas, monospace; color:#e8f7ff;
-  }
-  #wrap {
-    position:relative; width:100vw; height:100vh;
-    display:flex; align-items:center; justify-content:center;
-    background: radial-gradient(circle at 50% 40%, #0c1224 0%, #030408 85%);
-  }
-  canvas {
-    background: transparent;
-    display:block;
-    box-shadow: 0 0 50px rgba(0,255,255,0.12), inset 0 0 40px rgba(0,0,0,0.8);
-    border: 1px solid rgba(0,255,255,0.2);
-    border-radius: 4px;
-  }
-  #hud {
-    position:absolute; top:20px; left:24px; font-size:16px; letter-spacing:1.5px;
-    text-shadow: 0 0 8px rgba(0,255,255,0.8); pointer-events:none; z-index: 10;
-  }
-  #hud div { margin-bottom:6px; display:flex; align-items:center; gap:8px; }
-  .hud-val { color:#0ff; font-weight:bold; }
-  #combo-box { color:#ff2ec4; text-shadow:0 0 10px #ff2ec4; font-size:18px; font-weight:bold; }
-  #shield-status { color:#00ffaa; text-shadow:0 0 8px #00ffaa; font-size:13px; display:none; }
-  #shield-status.active { display:block; }
-  
-  #hint {
-    position:absolute; bottom:16px; left:50%; transform:translateX(-50%);
-    color:#4a6785; font-size:12px; letter-spacing:1.5px; text-transform:uppercase;
-    pointer-events:none; z-index: 10; text-shadow:0 0 4px rgba(0,0,0,0.8);
-  }
-
-  .overlay {
-    position:absolute; inset:0; display:flex; flex-direction:column;
-    align-items:center; justify-content:center; text-align:center;
-    background:rgba(3, 4, 10, 0.88); backdrop-filter: blur(4px);
-    gap:16px; z-index: 20; transition: opacity 0.2s ease;
-  }
-  .overlay h1 {
-    font-size:52px; letter-spacing:8px; color:#0ff;
-    text-shadow:0 0 20px #0ff, 0 0 40px rgba(0,255,255,0.6);
-    margin-bottom: -4px;
-  }
-  .overlay h2 {
-    color:#ff2ec4; text-shadow:0 0 14px #ff2ec4; font-size:24px; letter-spacing:3px;
-  }
-  .overlay p {
-    color:#89a8cf; max-width:480px; line-height:1.6; font-size:13px;
-    border-left: 2px solid #0ff; padding-left: 14px; text-align: left;
-  }
-  .legend {
-    display:grid; grid-template-columns: 1fr 1fr; gap:10px 20px;
-    font-size: 12px; color: #a0c4e8; margin-top: 4px; text-align: left;
-  }
-  .legend-item { display:flex; align-items:center; gap:8px; }
-  .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
-  
-  .btn {
-    margin-top:14px; padding:14px 36px; font-size:16px; letter-spacing:3px;
-    font-family: inherit; font-weight: bold;
-    background:transparent; border:2px solid #0ff; color:#0ff; cursor:pointer;
-    text-shadow:0 0 8px #0ff; box-shadow:0 0 16px rgba(0,255,255,0.3);
-    transition: all .2s ease; outline:none; position:relative; overflow:hidden;
-  }
-  .btn:hover {
-    background:#0ff; color:#030408; box-shadow:0 0 30px rgba(0,255,255,0.8);
-    transform: scale(1.04);
-  }
-  .hidden { display:none !important; }
-
-  #pauseOverlay h1 { color:#ffe600; text-shadow:0 0 20px #ffe600; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NEON DRIFT: SYNTHWAVE OVERDRIVE 3D</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-<div id="wrap">
-  <canvas id="game" width="800" height="600"></canvas>
 
-  <div id="hud">
-    <div>SCORE <span id="score" class="hud-val">0</span></div>
-    <div>BEST <span id="best" class="hud-val">0</span></div>
-    <div id="combo-box"></div>
-    <div id="shield-status">🛡️ SHIELD ACTIVE</div>
-  </div>
+  <!-- 3D WebGL Canvas Container -->
+  <div id="canvas-container"></div>
 
-  <div id="hint">WASD / ARROW KEYS / MOUSE · SPACE = SLOW PRECISION · P = PAUSE</div>
+  <!-- HUD Overlay Layer -->
+  <div id="ui-container">
+    <div id="hud-top">
+      <div class="hud-panel">
+        <div class="hud-group">
+          <span class="hud-label">SCORE</span>
+          <span id="score" class="hud-value">0</span>
+        </div>
+        <div class="hud-group">
+          <span class="hud-label">BEST</span>
+          <span id="best" class="hud-value">0</span>
+        </div>
+      </div>
 
-  <!-- Main Menu / Game Over Overlay -->
-  <div id="overlay" class="overlay">
-    <h1>NEON DRIFT</h1>
-    <p>Survive the shard storm. Dodge incoming red &amp; homing orange shards, grab powerups, and graze close to hazard edges for bonus points.</p>
-    <div class="legend">
-      <div class="legend-item"><span class="dot" style="background:#0ff; box-shadow:0 0 8px #0ff;"></span> Cyan Orbs: Score + Combo</div>
-      <div class="legend-item"><span class="dot" style="background:#ff2ec4; box-shadow:0 0 8px #ff2ec4;"></span> Magenta Bolts: 1-Hit Shield</div>
-      <div class="legend-item"><span class="dot" style="background:#ffea00; box-shadow:0 0 8px #ffea00;"></span> Yellow Bombs: Screen Clear</div>
-      <div class="legend-item"><span class="dot" style="background:#ff9900; box-shadow:0 0 8px #ff9900;"></span> Orange Shards: Homing Enemy</div>
+      <div class="hud-panel">
+        <div class="hud-group" style="align-items:center;">
+          <span class="hud-label">SPEED</span>
+          <div style="display:flex; align-items:baseline; gap:4px;">
+            <span id="speedometer" class="hud-value">0</span>
+            <span style="font-size:12px; color:#ffe600; font-family:'Orbitron';">KM/H</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-panel" style="flex-direction:column; align-items:flex-end;">
+        <div id="combo-display"></div>
+        <div id="shield-bar-container">🛡️ SHIELD ACTIVE</div>
+      </div>
     </div>
-    <button id="startBtn" class="btn">START GAME</button>
+
+    <!-- Bottom HUD controls & Lane indicator -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%;">
+      <div id="boost-container" class="hud-panel">
+        <span class="hud-label">NITRO BOOST</span>
+        <div class="meter-outer">
+          <div id="boost-meter-inner" class="meter-inner"></div>
+        </div>
+      </div>
+
+      <div id="lane-hud">
+        <div class="lane-dot"></div>
+        <div class="lane-dot"></div>
+        <div class="lane-dot active"></div>
+        <div class="lane-dot"></div>
+        <div class="lane-dot"></div>
+      </div>
+
+      <div id="hint-bar">
+        [A/D or ARROW KEYS] STEER · [SPACE] NITRO · [P] PAUSE
+      </div>
+    </div>
   </div>
 
-  <!-- Pause Overlay -->
-  <div id="pauseOverlay" class="overlay hidden">
-    <h1>PAUSED</h1>
-    <p style="border-color:#ffe600;">Press <strong>P</strong> or click below to resume your run.</p>
-    <button id="resumeBtn" class="btn" style="border-color:#ffe600; color:#ffe600; text-shadow:0 0 8px #ffe600;">RESUME</button>
+  <!-- Main Menu Modal Overlay -->
+  <div id="menuModal" class="modal-overlay">
+    <h1 class="title-glow">NEON DRIFT</h1>
+    <div class="subtitle">SYNTHWAVE OVERDRIVE 3D</div>
+
+    <div class="card-panel">
+      <h3 style="font-family:'Orbitron'; color:#00f3ff; font-size:16px; letter-spacing:2px;">HOW TO PLAY</h3>
+      <div class="how-to-grid">
+        <div class="grid-item">
+          <span class="item-icon" style="background:#00f3ff; box-shadow:0 0 8px #00f3ff;"></span>
+          <span><strong>Steer:</strong> A/D, Arrows, or Drag</span>
+        </div>
+        <div class="grid-item">
+          <span class="item-icon" style="background:#ffe600; box-shadow:0 0 8px #ffe600;"></span>
+          <span><strong>Nitro Boost:</strong> Space Bar</span>
+        </div>
+        <div class="grid-item">
+          <span class="item-icon" style="background:#00f3ff; box-shadow:0 0 8px #00f3ff;"></span>
+          <span>Cyan Orbs: Score + Combo</span>
+        </div>
+        <div class="grid-item">
+          <span class="item-icon" style="background:#ff00aa; box-shadow:0 0 8px #ff00aa;"></span>
+          <span>Magenta Torus: 1-Hit Shield</span>
+        </div>
+        <div class="grid-item">
+          <span class="item-icon" style="background:#ffe600; box-shadow:0 0 8px #ffe600;"></span>
+          <span>Yellow Bomb: Clear Hazards</span>
+        </div>
+        <div class="grid-item">
+          <span class="item-icon" style="background:#ff7700; box-shadow:0 0 8px #ff7700;"></span>
+          <span>Orange Hunters: Avoid Drift</span>
+        </div>
+      </div>
+      <p style="font-size:12px; color:#85a6c9; line-height:1.5;">Drive down the infinite 3D synthwave highway. Hit yellow barriers while boosting to smash through them for extra points!</p>
+      <button id="startBtn" class="cyber-btn">START RACE</button>
+    </div>
   </div>
-</div>
 
-<script>
-(() => {
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-
-  const scoreEl = document.getElementById('score');
-  const bestEl = document.getElementById('best');
-  const comboBoxEl = document.getElementById('combo-box');
-  const shieldStatusEl = document.getElementById('shield-status');
-  const overlay = document.getElementById('overlay');
-  const pauseOverlay = document.getElementById('pauseOverlay');
-  const startBtn = document.getElementById('startBtn');
-  const resumeBtn = document.getElementById('resumeBtn');
-
-  let best = Number(localStorage.getItem('neondrift_best') || 0);
-  bestEl.textContent = best;
-
-  // Key tracking
-  const keys = {};
-  window.addEventListener('keydown', e => {
-    const k = e.key.toLowerCase();
-    keys[k] = true;
-    if (k === 'p') togglePause();
-  });
-  window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
-
-  // Mouse tracking
-  let mouse = { x: W/2, y: H/2, active: false };
-  canvas.addEventListener('mousemove', e => {
-    const r = canvas.getBoundingClientRect();
-    mouse.x = (e.clientX - r.left) * (W / r.width);
-    mouse.y = (e.clientY - r.top) * (H / r.height);
-    mouse.active = true;
-  });
-  canvas.addEventListener('mouseleave', () => { mouse.active = false; });
-
-  // Math helpers
-  function rand(a, b) { return a + Math.random() * (b - a); }
-  function dist(x1, y1, x2, y2) { return Math.hypot(x1 - x2, y1 - y2); }
-
-  // Game state
-  let state = 'MENU'; // MENU, PLAYING, PAUSED, GAMEOVER
-  let player, particles, shards, orbs, bolts, bombs, floatingTexts, shockwaves;
-  let score, combo, comboTimer, shield, shieldTimer, t, spawnTimer, difficulty;
-  let level, nextLevelScore;
-  let shakeTime = 0, shakeMag = 0;
-
-  function triggerShake(duration = 12, magnitude = 8) {
-    shakeTime = duration;
-    shakeMag = magnitude;
-  }
-
-  function resetGame() {
-    player = { x: W/2, y: H/2, r: 9, trail: [] };
-    particles = [];
-    shards = [];
-    orbs = [];
-    bolts = [];
-    bombs = [];
-    floatingTexts = [];
-    shockwaves = [];
-
-    score = 0;
-    combo = 1;
-    comboTimer = 0;
-    shield = false;
-    shieldTimer = 0;
-    t = 0;
-    spawnTimer = 0;
-    difficulty = 1;
-    level = 1;
-    nextLevelScore = 500;
-    shakeTime = 0;
-    shakeMag = 0;
-
-    state = 'PLAYING';
-    overlay.classList.add('hidden');
-    pauseOverlay.classList.add('hidden');
-    shieldStatusEl.classList.remove('active');
-  }
-
-  function togglePause() {
-    if (state === 'PLAYING') {
-      state = 'PAUSED';
-      pauseOverlay.classList.remove('hidden');
-    } else if (state === 'PAUSED') {
-      state = 'PLAYING';
-      pauseOverlay.classList.add('hidden');
-      loop();
-    }
-  }
-
-  // Spawning logic
-  function spawnShard() {
-    const edge = Math.floor(rand(0, 4));
-    let x, y;
-    if (edge === 0) { x = rand(0, W); y = -25; }
-    else if (edge === 1) { x = W + 25; y = rand(0, H); }
-    else if (edge === 2) { x = rand(0, W); y = H + 25; }
-    else { x = -25; y = rand(0, H); }
-
-    const angle = Math.atan2(player.y - y, player.x - x) + rand(-0.35, 0.35);
-    const isHunter = t > 3000 && Math.random() < 0.3; // Spawn homing shards after ~50 sec
-    const baseSpeed = isHunter ? rand(1.2, 2.0) : rand(1.6, 2.8);
-    const speed = baseSpeed * Math.min(difficulty, 2.8);
-
-    shards.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      r: isHunter ? rand(10, 13) : rand(8, 14),
-      rot: rand(0, 7),
-      spin: rand(-0.1, 0.1),
-      isHunter,
-      grazed: false
-    });
-  }
-
-  function spawnOrb() {
-    orbs.push({ x: rand(50, W-50), y: rand(50, H-50), r: 8, phase: rand(0,7) });
-  }
-
-  function spawnBolt() {
-    bolts.push({ x: rand(50, W-50), y: rand(50, H-50), r: 10, phase: rand(0,7) });
-  }
-
-  function spawnBomb() {
-    bombs.push({ x: rand(60, W-60), y: rand(60, H-60), r: 11, phase: rand(0,7) });
-  }
-
-  // Particle & Text Effects
-  function addParticles(x, y, color, count = 12, speedMult = 1) {
-    for (let i = 0; i < count; i++) {
-      const angle = rand(0, Math.PI * 2);
-      const spd = rand(1, 4) * speedMult;
-      particles.push({
-        x, y,
-        vx: Math.cos(angle) * spd,
-        vy: Math.sin(angle) * spd,
-        life: rand(18, 36),
-        maxLife: 36,
-        color,
-        size: rand(1.5, 3.5)
-      });
-    }
-  }
-
-  function addFloatingText(text, x, y, color = '#0ff', fontSize = 14) {
-    floatingTexts.push({
-      text, x, y, vy: -1.2, color, fontSize,
-      life: 45, maxLife: 45
-    });
-  }
-
-  function triggerBombClear(bx, by) {
-    // Create shockwave ring
-    shockwaves.push({ x: bx, y: by, r: 10, maxR: Math.max(W, H) * 1.2, color: '#ffea00' });
-    triggerShake(24, 16);
-
-    // Destroy all shards
-    let clearedCount = shards.length;
-    shards.forEach(s => {
-      addParticles(s.x, s.y, '#ffea00', 14, 1.5);
-    });
-    shards = [];
-
-    // Award bonus score
-    const bonus = clearedCount * 25 * combo + 150;
-    score += bonus;
-    addFloatingText(`EMP BLAST +${bonus}!`, bx, by - 20, '#ffea00', 18);
-  }
-
-  function update() {
-    t++;
-    difficulty = 1 + t / 1500; // Ramp up difficulty
-
-    // Player Movement
-    let dx = 0, dy = 0;
-    if (keys['arrowleft'] || keys['a']) dx -= 1;
-    if (keys['arrowright'] || keys['d']) dx += 1;
-    if (keys['arrowup'] || keys['w']) dy -= 1;
-    if (keys['arrowdown'] || keys['s']) dy += 1;
-
-    const usingKeys = dx !== 0 || dy !== 0;
-    const isSlow = keys[' '];
-    const speed = isSlow ? 2.2 : 5.2;
-
-    if (usingKeys) {
-      const len = Math.hypot(dx, dy) || 1;
-      player.x += (dx / len) * speed;
-      player.y += (dy / len) * speed;
-    } else if (mouse.active) {
-      const ddx = mouse.x - player.x, ddy = mouse.y - player.y;
-      const d = Math.hypot(ddx, ddy);
-      if (d > 2) {
-        const mv = Math.min(d, speed);
-        player.x += (ddx / d) * mv;
-        player.y += (ddy / d) * mv;
-      }
-    }
-    player.x = Math.max(player.r, Math.min(W - player.r, player.x));
-    player.y = Math.max(player.r, Math.min(H - player.r, player.y));
-
-    // Player Trail
-    player.trail.push({ x: player.x, y: player.y, slow: isSlow });
-    if (player.trail.length > (isSlow ? 18 : 12)) player.trail.shift();
-
-    // Spawner timers
-    spawnTimer++;
-    const spawnRate = Math.max(8, 36 - Math.floor(difficulty * 6));
-    if (spawnTimer > spawnRate) {
-      spawnTimer = 0;
-      spawnShard();
-    }
-    if (Math.random() < 0.014) spawnOrb();
-    if (Math.random() < 0.003 && !shield) spawnBolt();
-    if (Math.random() < 0.002 && bombs.length === 0) spawnBomb();
-
-    // Update Shards & Homing Logic
-    for (let i = shards.length - 1; i >= 0; i--) {
-      const s = shards[i];
-
-      if (s.isHunter) {
-        // Homing steering towards player
-        const angle = Math.atan2(player.y - s.y, player.x - s.x);
-        const steerForce = 0.07 * Math.min(difficulty, 2.2);
-        s.vx += Math.cos(angle) * steerForce;
-        s.vy += Math.sin(angle) * steerForce;
-        // Cap max homing speed
-        const spd = Math.hypot(s.vx, s.vy);
-        const maxSpd = 3.2;
-        if (spd > maxSpd) {
-          s.vx = (s.vx / spd) * maxSpd;
-          s.vy = (s.vy / spd) * maxSpd;
-        }
-      }
-
-      s.x += s.vx; s.y += s.vy; s.rot += s.spin;
-
-      // Despawn bounds
-      if (s.x < -70 || s.x > W + 70 || s.y < -70 || s.y > H + 70) {
-        shards.splice(i, 1);
-        continue;
-      }
-
-      const d = dist(s.x, s.y, player.x, player.y);
-
-      // 1. Collision check
-      if (d < s.r + player.r) {
-        if (shield) {
-          triggerShake(14, 10);
-          addParticles(s.x, s.y, '#ff2ec4', 20, 1.2);
-          addFloatingText('SHIELD BROKEN!', player.x, player.y - 15, '#ff2ec4', 14);
-          shards.splice(i, 1);
-          shield = false;
-          shieldStatusEl.classList.remove('active');
-        } else {
-          gameOver();
-          return;
-        }
-        continue;
-      }
-
-      // 2. Graze mechanic check
-      const grazeRadius = player.r + s.r + 14;
-      if (!s.grazed && d < grazeRadius) {
-        s.grazed = true;
-        const grazeScore = 15 * combo;
-        score += grazeScore;
-        addFloatingText(`+${grazeScore} GRAZE`, player.x, player.y - 12, '#00ffaa', 11);
-        addParticles(s.x, s.y, '#00ffaa', 5, 0.6);
-      }
-    }
-
-    // Update Orbs
-    for (let i = orbs.length - 1; i >= 0; i--) {
-      const o = orbs[i];
-      o.phase += 0.08;
-      if (dist(o.x, o.y, player.x, player.y) < o.r + player.r) {
-        const pts = 25 * combo;
-        score += pts;
-        combo = Math.min(combo + 1, 25);
-        comboTimer = 180; // 3 seconds to chain
-        addParticles(o.x, o.y, '#0ff', 16, 1.2);
-        addFloatingText(`+${pts} (x${combo})`, o.x, o.y, '#0ff', 13);
-        orbs.splice(i, 1);
-      }
-    }
-
-    // Update Bolts (Shield pickup)
-    for (let i = bolts.length - 1; i >= 0; i--) {
-      const b = bolts[i];
-      b.phase += 0.08;
-      if (dist(b.x, b.y, player.x, player.y) < b.r + player.r) {
-        shield = true;
-        shieldStatusEl.classList.add('active');
-        addParticles(b.x, b.y, '#ff2ec4', 22, 1.3);
-        addFloatingText('SHIELD ONLINE!', b.x, b.y, '#ff2ec4', 15);
-        bolts.splice(i, 1);
-      }
-    }
-
-    // Update Bombs
-    for (let i = bombs.length - 1; i >= 0; i--) {
-      const bm = bombs[i];
-      bm.phase += 0.1;
-      if (dist(bm.x, bm.y, player.x, player.y) < bm.r + player.r) {
-        triggerBombClear(bm.x, bm.y);
-        bombs.splice(i, 1);
-      }
-    }
-
-    // Combo decay timer
-    if (comboTimer > 0) {
-      comboTimer--;
-      if (comboTimer === 0) combo = 1;
-    }
-
-    // Passive Score & Level check
-    score += 0.08 * difficulty;
-    if (score >= nextLevelScore) {
-      level++;
-      nextLevelScore += 500;
-      triggerShake(10, 8);
-      addFloatingText(`LEVEL UP! (LVL ${level})`, W/2, H/3, '#0ff', 24);
-      addParticles(W/2, H/3, '#0ff', 30, 2);
-    }
-
-    // Update Shockwaves
-    for (let i = shockwaves.length - 1; i >= 0; i--) {
-      const sw = shockwaves[i];
-      sw.r += 18;
-      if (sw.r > sw.maxR) shockwaves.splice(i, 1);
-    }
-
-    // Update Floating Texts
-    for (let i = floatingTexts.length - 1; i >= 0; i--) {
-      const ft = floatingTexts[i];
-      ft.y += ft.vy;
-      ft.life--;
-      if (ft.life <= 0) floatingTexts.splice(i, 1);
-    }
-
-    // Update Particles
-    for (let i = particles.length - 1; i >= 0; i--) {
-      const p = particles[i];
-      p.x += p.vx; p.y += p.vy;
-      p.life--;
-      if (p.life <= 0) particles.splice(i, 1);
-    }
-
-    // Update Screen Shake
-    if (shakeTime > 0) shakeTime--;
-
-    // Update HUD
-    scoreEl.textContent = Math.floor(score);
-    comboBoxEl.textContent = combo > 1 ? `COMBO x${combo}` : '';
-  }
-
-  function draw() {
-    ctx.save();
-
-    // Screen Shake Offset
-    if (shakeTime > 0) {
-      const sx = rand(-shakeMag, shakeMag);
-      const sy = rand(-shakeMag, shakeMag);
-      ctx.translate(sx, sy);
-    }
-
-    ctx.clearRect(-20, -20, W + 40, H + 40);
-
-    // Background Grid
-    ctx.strokeStyle = 'rgba(0, 255, 255, 0.05)';
-    ctx.lineWidth = 1;
-    for (let gx = 0; gx < W; gx += 40) { ctx.beginPath(); ctx.moveTo(gx, 0); ctx.lineTo(gx, H); ctx.stroke(); }
-    for (let gy = 0; gy < H; gy += 40) { ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(W, gy); ctx.stroke(); }
-
-    // Shockwaves
-    shockwaves.forEach(sw => {
-      ctx.strokeStyle = sw.color;
-      ctx.lineWidth = 4;
-      ctx.globalAlpha = Math.max(0, 1 - sw.r / sw.maxR);
-      ctx.beginPath(); ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2); ctx.stroke();
-    });
-    ctx.globalAlpha = 1;
-
-    // Particles
-    particles.forEach(p => {
-      ctx.globalAlpha = p.life / p.maxLife;
-      ctx.fillStyle = p.color;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-
-    // Orbs (Cyan)
-    orbs.forEach(o => {
-      const pulse = 1 + Math.sin(o.phase) * 0.2;
-      ctx.fillStyle = '#0ff';
-      ctx.shadowColor = '#0ff'; ctx.shadowBlur = 16;
-      ctx.beginPath(); ctx.arc(o.x, o.y, o.r * pulse, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
-    });
-
-    // Bolts (Magenta Shield)
-    bolts.forEach(b => {
-      const pulse = 1 + Math.sin(b.phase) * 0.25;
-      ctx.fillStyle = '#ff2ec4';
-      ctx.shadowColor = '#ff2ec4'; ctx.shadowBlur = 20;
-      ctx.beginPath(); ctx.arc(b.x, b.y, b.r * pulse, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
-    });
-
-    // Bombs (Yellow EMP)
-    bombs.forEach(bm => {
-      const pulse = 1 + Math.sin(bm.phase) * 0.3;
-      ctx.fillStyle = '#ffea00';
-      ctx.shadowColor = '#ffea00'; ctx.shadowBlur = 22;
-      ctx.beginPath(); ctx.arc(bm.x, bm.y, bm.r * pulse, 0, Math.PI * 2); ctx.fill();
-      // Inner star ring
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(bm.x, bm.y, (bm.r + 5) * pulse, 0, Math.PI * 2); ctx.stroke();
-      ctx.shadowBlur = 0;
-    });
-
-    // Shards
-    shards.forEach(s => {
-      ctx.save();
-      ctx.translate(s.x, s.y);
-      ctx.rotate(s.rot);
-
-      const color = s.isHunter ? '#ff9900' : '#ff3355';
-      ctx.fillStyle = color;
-      ctx.shadowColor = color;
-      ctx.shadowBlur = s.isHunter ? 16 : 10;
-
-      ctx.beginPath();
-      if (s.isHunter) {
-        // Needle / Diamond Homing Shard shape
-        ctx.moveTo(0, -s.r * 1.3);
-        ctx.lineTo(s.r * 0.7, 0);
-        ctx.lineTo(0, s.r * 0.9);
-        ctx.lineTo(-s.r * 0.7, 0);
-      } else {
-        // Triangular Shard shape
-        ctx.moveTo(0, -s.r);
-        ctx.lineTo(s.r * 0.85, s.r * 0.75);
-        ctx.lineTo(-s.r * 0.85, s.r * 0.75);
-      }
-      ctx.closePath();
-      ctx.fill();
-      ctx.shadowBlur = 0;
-      ctx.restore();
-    });
-
-    // Player Trail
-    player.trail.forEach((p, i) => {
-      const alpha = (i / player.trail.length) * 0.45;
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = p.slow ? '#00ffaa' : '#e8f7ff';
-      ctx.beginPath(); ctx.arc(p.x, p.y, player.r * 0.65, 0, Math.PI * 2); ctx.fill();
-    });
-    ctx.globalAlpha = 1;
-
-    // Player Core
-    ctx.fillStyle = shield ? '#ff2ec4' : (keys[' '] ? '#00ffaa' : '#e8f7ff');
-    ctx.shadowColor = shield ? '#ff2ec4' : (keys[' '] ? '#00ffaa' : '#0ff');
-    ctx.shadowBlur = 22;
-    ctx.beginPath(); ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2); ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // Shield Aura
-    if (shield) {
-      ctx.strokeStyle = '#ff2ec4';
-      ctx.lineWidth = 2.5;
-      ctx.shadowColor = '#ff2ec4'; ctx.shadowBlur = 12;
-      ctx.beginPath(); ctx.arc(player.x, player.y, player.r + 9, 0, Math.PI * 2); ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-
-    // Floating Texts
-    floatingTexts.forEach(ft => {
-      ctx.globalAlpha = Math.max(0, ft.life / ft.maxLife);
-      ctx.font = `bold ${ft.fontSize}px 'Courier New', monospace`;
-      ctx.fillStyle = ft.color;
-      ctx.shadowColor = ft.color;
-      ctx.shadowBlur = 10;
-      ctx.textAlign = 'center';
-      ctx.fillText(ft.text, ft.x, ft.y);
-      ctx.shadowBlur = 0;
-    });
-    ctx.globalAlpha = 1;
-
-    ctx.restore();
-  }
-
-  function loop() {
-    if (state !== 'PLAYING') return;
-    update();
-    if (state !== 'PLAYING') return;
-    draw();
-    requestAnimationFrame(loop);
-  }
-
-  function gameOver() {
-    state = 'GAMEOVER';
-    triggerShake(20, 15);
-    addParticles(player.x, player.y, '#e8f7ff', 45, 2);
-    draw();
-
-    const finalScore = Math.floor(score);
-    if (finalScore > best) {
-      best = finalScore;
-      localStorage.setItem('neondrift_best', best);
-      bestEl.textContent = best;
-    }
-
-    setTimeout(() => {
-      overlay.classList.remove('hidden');
-      overlay.innerHTML = `
-        <h1>RUN OVER</h1>
-        <h2>SCORE ${finalScore}</h2>
-        <p style="text-align:center; border-left:none;">Best High Score: <strong>${best}</strong></p>
-        <button id="startBtn" class="btn">RETRY RUN</button>
-      `;
-      document.getElementById('startBtn').addEventListener('click', resetGame);
-    }, 500);
-  }
-
-  startBtn.addEventListener('click', resetGame);
-  resumeBtn.addEventListener('click', togglePause);
-})();
-</script>
+  <!-- Game Over Modal -->
+  <div id="gameOverModal" class="modal-overlay hidden">
+    <h1 class="title-glow" style="background: linear-gradient(180deg, #ff0055 0%, #ff7700 100%); -webkit-background-clip: text;">RUN CRASHED</h1>
+    
+    <div class="card-panel" style="text-align:center;">
+      <div style="font-family:'Orbitron'; font-size:14px; color:#799ec2;">FINAL SCORE</div>
+      <div id="finalScore" style="font-family:'Orbitron'; font-size:42px; color:#00f3ff; text-shadow:0 0 15px #00f3ff; font-weight:900;">0</div>
+      <div style="font-family:'Orbitron'; font-size:12px; color:#ff00aa;">BEST HIGH SCORE: <span id="finalBest">0</span></div>
+
+      <button id="retryBtn" class="cyber-btn" style="margin-top:20px;">RETRY RACE</button>
+    </div>
+  </div>
+
+  <!-- Pause Modal -->
+  <div id="pauseModal" class="modal-overlay hidden">
+    <h1 class="title-glow" style="background: linear-gradient(180deg, #ffe600 0%, #ff7700 100%); -webkit-background-clip: text;">RACE PAUSED</h1>
+    <p style="font-family:'Orbitron'; color:#a0c4e8; margin-bottom:16px;">Press <strong>P</strong> to resume driving.</p>
+    <button id="resumeBtn" class="cyber-btn" style="border-color:#ffe600; color:#ffe600; text-shadow:0 0 10px #ffe600;">RESUME RACE</button>
+  </div>
+
+  <!-- Three.js CDN Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <!-- Main Game Engine -->
+  <script src="main.js"></script>
 </body>
 </html>

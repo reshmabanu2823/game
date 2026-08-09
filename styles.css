@@ -1,0 +1,296 @@
+/* NEON DRIFT: SYNTHWAVE OVERDRIVE UI STYLES */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background-color: #040409;
+  font-family: 'Rajdhani', 'Segoe UI', sans-serif;
+  color: #e2f1ff;
+}
+
+#canvas-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* UI Overlays & HUD Container */
+#ui-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 24px;
+}
+
+/* HUD Header & Glass Panels */
+.hud-panel {
+  background: rgba(8, 12, 28, 0.65);
+  border: 1px solid rgba(0, 243, 255, 0.35);
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.15), inset 0 0 15px rgba(0, 243, 255, 0.08);
+  backdrop-filter: blur(8px);
+  border-radius: 6px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#hud-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.hud-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.hud-label {
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: #799ec2;
+  text-transform: uppercase;
+}
+
+.hud-value {
+  font-family: 'Orbitron', monospace;
+  font-size: 26px;
+  font-weight: 900;
+  color: #00f3ff;
+  text-shadow: 0 0 12px rgba(0, 243, 255, 0.8);
+}
+
+#speedometer {
+  color: #ffe600;
+  text-shadow: 0 0 14px rgba(255, 230, 0, 0.8);
+  font-size: 32px;
+}
+
+#combo-display {
+  color: #ff00aa;
+  text-shadow: 0 0 14px rgba(255, 0, 170, 0.8);
+  font-size: 22px;
+  min-height: 28px;
+}
+
+#shield-bar-container {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  color: #00ffaa;
+  font-family: 'Orbitron', monospace;
+  font-size: 12px;
+  text-shadow: 0 0 10px #00ffaa;
+}
+
+#shield-bar-container.active {
+  display: flex;
+}
+
+/* Lane Indicator HUD */
+#lane-hud {
+  display: flex;
+  gap: 8px;
+  background: rgba(5, 7, 18, 0.7);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(0, 243, 255, 0.2);
+}
+
+.lane-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  transition: all 0.15s ease;
+}
+
+.lane-dot.active {
+  background: #00f3ff;
+  box-shadow: 0 0 12px #00f3ff;
+  transform: scale(1.3);
+}
+
+/* Boost Meter */
+#boost-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 180px;
+}
+
+.meter-outer {
+  width: 100%;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 230, 0, 0.4);
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.meter-inner {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #ff7700, #ffe600);
+  box-shadow: 0 0 10px #ffe600;
+  transition: width 0.1s linear;
+}
+
+/* Screen Hints */
+#hint-bar {
+  align-self: center;
+  font-family: 'Orbitron', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: rgba(160, 200, 240, 0.7);
+  background: rgba(4, 6, 16, 0.6);
+  padding: 6px 18px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Overlays & Modals */
+.modal-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  background: rgba(3, 4, 12, 0.82);
+  backdrop-filter: blur(10px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  pointer-events: auto;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.title-glow {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: 6px;
+  text-align: center;
+  background: linear-gradient(180deg, #00f3ff 0%, #ff00aa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 25px rgba(0, 243, 255, 0.7));
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  font-family: 'Orbitron', monospace;
+  font-size: 14px;
+  letter-spacing: 4px;
+  color: #ff7700;
+  text-shadow: 0 0 10px #ff7700;
+  margin-bottom: 24px;
+}
+
+.card-panel {
+  background: rgba(10, 16, 36, 0.75);
+  border: 1px solid rgba(0, 243, 255, 0.3);
+  box-shadow: 0 0 30px rgba(0, 243, 255, 0.15);
+  border-radius: 10px;
+  padding: 24px 32px;
+  max-width: 540px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.how-to-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 16px;
+  font-size: 13px;
+  color: #b0d2f5;
+}
+
+.grid-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px 12px;
+  border-radius: 6px;
+  border-left: 3px solid #00f3ff;
+}
+
+.grid-item strong {
+  color: #fff;
+}
+
+.item-icon {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Cyber Button */
+.cyber-btn {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: #00f3ff;
+  background: transparent;
+  border: 2px solid #00f3ff;
+  padding: 14px 36px;
+  border-radius: 4px;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(0, 243, 255, 0.3);
+  transition: all 0.2s ease;
+  margin-top: 8px;
+  align-self: center;
+  text-transform: uppercase;
+}
+
+.cyber-btn:hover {
+  background: #00f3ff;
+  color: #040509;
+  box-shadow: 0 0 35px rgba(0, 243, 255, 0.9);
+  transform: scale(1.05);
+}
+
+.cyber-btn:active {
+  transform: scale(0.98);
+}
+
+/* Responsiveness */
+@media (max-width: 640px) {
+  .title-glow { font-size: 32px; letter-spacing: 3px; }
+  .card-panel { padding: 18px 20px; }
+  .how-to-grid { grid-template-columns: 1fr; }
+  .hud-value { font-size: 20px; }
+  #speedometer { font-size: 24px; }
+}
