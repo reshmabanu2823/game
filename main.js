@@ -277,10 +277,31 @@
 
   // --- POWER INVENTORY SYSTEM ---
   const POWER_TYPES = {
-    NITRO:   { id: 'NITRO',   label: 'Nitro Burst',   color: 0xffaa00, glowHex: '#ffaa00', icon: '⚡', key: '1', desc: 'Instant max-speed surge' },
-    PHASE:   { id: 'PHASE',   label: 'Phase Shift',   color: 0x00e5ff, glowHex: '#00e5ff', icon: '👻', key: '2', desc: 'Pass through 1 obstacle' },
-    EMP:     { id: 'EMP',     label: 'EMP Pulse',     color: 0x9900ff, glowHex: '#9900ff', icon: '📡', key: '3', desc: 'Stuns hunter vehicles' },
-    PHOENIX: { id: 'PHOENIX', label: 'Phoenix Shard', color: 0xff4400, glowHex: '#ff4400', icon: '🔥', key: 'auto', desc: 'Auto-saves on fatal crash' }
+    NITRO: {
+      id: 'NITRO', label: 'Nitro Burst', color: 0xffaa00, glowHex: '#ffaa00',
+      svgIcon: `<svg class="power-svg" viewBox="0 0 24 24" fill="none" stroke="#ffaa00" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+      iconSymbol: '⚡', key: 'Q', desc: 'Instant max-speed surge'
+    },
+    PHASE: {
+      id: 'PHASE', label: 'Phase Shift', color: 0x00f3ff, glowHex: '#00f3ff',
+      svgIcon: `<svg class="power-svg" viewBox="0 0 24 24" fill="none" stroke="#00f3ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 10h.01M15 10h.01M12 2a7 7 0 0 0-7 7v11l3-2 2 2 2-2 2 2 2-2 3 2V9a7 7 0 0 0-7-7z"/></svg>`,
+      iconSymbol: '👻', key: 'W', desc: 'Pass through obstacles for 3s'
+    },
+    EMP: {
+      id: 'EMP', label: 'EMP Pulse', color: 0xb700ff, glowHex: '#b700ff',
+      svgIcon: `<svg class="power-svg" viewBox="0 0 24 24" fill="none" stroke="#b700ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="2"/><path d="M4.93 4.93a10 10 0 0 1 14.14 0M7.76 7.76a6 6 0 0 1 8.48 0M4.93 19.07a10 10 0 0 0 14.14 0M7.76 16.24a6 6 0 0 0 8.48 0"/></svg>`,
+      iconSymbol: '📡', key: 'E', desc: 'Stuns hunter vehicles'
+    },
+    MAGNET: {
+      id: 'MAGNET', label: 'Magnet', color: 0x00e676, glowHex: '#00e676',
+      svgIcon: `<svg class="power-svg" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3v7a6 6 0 0 0 12 0V3M4 3h4v4H4zM16 3h4v4h-4z"/></svg>`,
+      iconSymbol: '🧲', key: 'Q', desc: 'Attracts nearby orbs'
+    },
+    PHOENIX: {
+      id: 'PHOENIX', label: 'Phoenix Shard', color: 0xff3300, glowHex: '#ff3300',
+      svgIcon: `<svg class="power-svg" viewBox="0 0 24 24" fill="none" stroke="#ff3300" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L4.5 9.5 12 22l7.5-12.5L12 2z"/><path d="M12 2v20M4.5 9.5h15"/></svg>`,
+      iconSymbol: '🔥', key: 'auto', desc: 'Auto-saves on fatal crash'
+    }
   };
 
   const MAX_POWER_SLOTS = 3;
@@ -751,7 +772,7 @@
   }
 
   // --- POWER PICKUP 3D MESH & SPRITE GENERATORS ---
-  function createPowerIconSprite(iconSymbol, glowHexColor) {
+  function createPowerIconSprite(pKey, glowHexColor) {
     const canvas = document.createElement('canvas');
     canvas.width = 128;
     canvas.height = 128;
@@ -760,22 +781,52 @@
     // Glowing badge circle
     ctx.beginPath();
     ctx.arc(64, 64, 50, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(10, 14, 22, 0.88)';
+    ctx.fillStyle = 'rgba(10, 14, 22, 0.9)';
     ctx.fill();
     ctx.lineWidth = 6;
     ctx.strokeStyle = glowHexColor;
     ctx.shadowColor = glowHexColor;
-    ctx.shadowBlur = 14;
+    ctx.shadowBlur = 16;
     ctx.stroke();
 
-    // Icon symbol text
-    ctx.font = '54px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = glowHexColor;
-    ctx.shadowBlur = 18;
-    ctx.fillText(iconSymbol, 64, 66);
+    // Draw vector icon path on canvas matching SVG
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = glowHexColor;
+    ctx.fillStyle = glowHexColor;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    if (pKey === 'NITRO') {
+      ctx.beginPath();
+      ctx.moveTo(68, 16); ctx.lineTo(32, 64); ctx.lineTo(64, 64);
+      ctx.lineTo(60, 112); ctx.lineTo(96, 56); ctx.lineTo(64, 56);
+      ctx.closePath();
+      ctx.fill();
+    } else if (pKey === 'PHASE') {
+      ctx.beginPath();
+      ctx.arc(64, 50, 30, Math.PI, 0, false);
+      ctx.lineTo(94, 96); ctx.lineTo(80, 84); ctx.lineTo(64, 96);
+      ctx.lineTo(48, 84); ctx.lineTo(34, 96); ctx.closePath();
+      ctx.stroke();
+    } else if (pKey === 'EMP') {
+      ctx.beginPath(); ctx.arc(64, 64, 12, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(64, 64, 28, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(64, 64, 42, 0, Math.PI * 2); ctx.stroke();
+    } else if (pKey === 'MAGNET') {
+      ctx.beginPath();
+      ctx.arc(64, 50, 26, Math.PI, 0, false);
+      ctx.lineTo(90, 88); ctx.lineTo(76, 88); ctx.lineTo(76, 50);
+      ctx.arc(64, 50, 12, 0, Math.PI, true);
+      ctx.lineTo(52, 88); ctx.lineTo(38, 88); ctx.closePath();
+      ctx.stroke();
+    } else {
+      // PHOENIX crystal diamond
+      ctx.beginPath();
+      ctx.moveTo(64, 18); ctx.lineTo(36, 54); ctx.lineTo(64, 110); ctx.lineTo(92, 54); ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(36, 54); ctx.lineTo(92, 54); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(64, 18); ctx.lineTo(64, 110); ctx.stroke();
+    }
 
     const texture = new THREE.CanvasTexture(canvas);
     const spriteMat = new THREE.SpriteMaterial({ map: texture, transparent: true });
@@ -829,7 +880,7 @@
     group.add(ptLight);
 
     // Floating 3D Icon Sprite facing camera
-    const sprite = createPowerIconSprite(pt.icon, pt.glowHex);
+    const sprite = createPowerIconSprite(pKey, pt.glowHex);
     group.add(sprite);
 
     return group;
@@ -851,8 +902,8 @@
     let mesh, type;
 
     if (roll < powerChance) {
-      // Pick randomly from all 4 power types
-      const powerKeys = ['NITRO', 'PHASE', 'EMP', 'PHOENIX'];
+      // Pick randomly from all power types
+      const powerKeys = ['NITRO', 'PHASE', 'EMP', 'MAGNET', 'PHOENIX'];
       const pKey = powerKeys[Math.floor(Math.random() * powerKeys.length)];
 
       mesh = createPower3DMesh(pKey);
@@ -898,7 +949,7 @@
     if (!powerOnboardSeen.has(powerKey) && powerKey !== 'PHOENIX') {
       powerOnboardSeen.add(powerKey);
       const pt = POWER_TYPES[powerKey];
-      showPowerHint(`${pt.icon} ${pt.label} banked! Press ${pt.key} to activate.`);
+      showPowerHint(`${pt.label} banked! Press ${pt.key} to activate.`);
     } else if (!powerOnboardSeen.has(powerKey) && powerKey === 'PHOENIX') {
       powerOnboardSeen.add(powerKey);
       showPowerHint('🔥 Phoenix Shard banked! Auto-saves 1 fatal crash.');
@@ -910,18 +961,29 @@
     const tray = document.getElementById('power-tray');
     if (!tray) return;
     tray.innerHTML = '';
+
+    const slotKeys = ['Q', 'W', 'E'];
+
     for (let i = 0; i < MAX_POWER_SLOTS; i++) {
       const slot = document.createElement('div');
-      slot.className = 'power-slot' + (i < powerInventory.length ? ' filled' : '');
+      const keyLabel = slotKeys[i];
+
       if (i < powerInventory.length) {
         const pk = powerInventory[i];
-        const pt = POWER_TYPES[pk];
-        slot.title = pt.label;
+        const pt = POWER_TYPES[pk] || POWER_TYPES.NITRO;
+        slot.className = 'power-slot filled';
+        slot.title = `${pt.label} (${pt.key === 'auto' ? 'Auto-triggers on crash' : 'Press ' + keyLabel})`;
         slot.style.borderColor = pt.glowHex;
-        slot.style.boxShadow = `0 0 8px ${pt.glowHex}55`;
-        slot.innerHTML = `<span class="power-icon">${pt.icon}</span><span class="power-key-badge">${pt.key === 'auto' ? '★' : pt.key}</span>`;
+        slot.style.boxShadow = `0 0 14px ${pt.glowHex}44, inset 0 0 8px ${pt.glowHex}22`;
+        slot.innerHTML = `
+          <div class="power-svg-wrap">${pt.svgIcon}</div>
+          <span class="power-key-badge">${pt.key === 'auto' ? 'AUTO' : keyLabel}</span>
+        `;
       } else {
-        slot.innerHTML = `<span style="opacity:0.25; font-size:11px;">—</span>`;
+        slot.className = 'power-slot empty';
+        slot.innerHTML = `
+          <svg class="empty-plus-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        `;
       }
       tray.appendChild(slot);
     }
@@ -1050,10 +1112,10 @@
       if (k === 'arrowright' || k === 'd') { if (targetLane < LANES.length - 1) targetLane++; }
       if (k === ' ') { isBoosting = true; audio.playBoost(); }
       if (k === 'p' || k === 'escape') togglePause();
-      // Power activation keys
+      // Power activation keys: Q, W, E or 1, 2, 3
       if (k === 'q' || k === '1') activatePower(0);
-      if (k === '2') activatePower(1);
-      if (k === '3') activatePower(2);
+      if (k === 'w' || k === '2') activatePower(1);
+      if (k === 'e' || k === '3') activatePower(2);
     }
   }
 
