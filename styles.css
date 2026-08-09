@@ -48,7 +48,7 @@ html, body {
   right: 0;
   height: 70px;
   z-index: 100;
-  background: rgba(4, 6, 16, 0.92);
+  background: rgba(4, 6, 16, 0.94);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border-glow);
   box-shadow: 0 4px 25px rgba(0, 243, 255, 0.12);
@@ -272,7 +272,7 @@ html, body {
 /* In-Race Fork Warning Banner */
 #fork-banner {
   position: absolute;
-  top: 140px;
+  top: 160px;
   left: 50%;
   transform: translateX(-50%);
   background: rgba(4, 6, 16, 0.92);
@@ -733,10 +733,10 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
 
 .cyber-btn:hover { background: var(--cyan); color: #040509; box-shadow: 0 0 35px var(--cyan); transform: scale(1.05); }
 
-/* HUD Top Layer (Positioned cleanly below the 70px navigation header!) */
+/* HUD Top Layer (Positioned cleanly 100px from top, completely clear of navigation header!) */
 #ui-container {
   position: absolute;
-  top: 75px;
+  top: 98px;
   left: 0;
   right: 0;
   bottom: 0;
@@ -745,12 +745,12 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 18px 24px;
+  padding: 0 24px 24px 24px;
 }
 
 .hud-panel {
-  background: rgba(8, 12, 28, 0.75); border: 1px solid var(--border-glow);
-  box-shadow: 0 0 20px rgba(0, 243, 255, 0.15); backdrop-filter: blur(8px);
+  background: rgba(8, 12, 28, 0.85); border: 1px solid var(--border-glow);
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.18); backdrop-filter: blur(8px);
   border-radius: 6px; padding: 10px 18px; display: flex; align-items: center; gap: 16px;
 }
 
