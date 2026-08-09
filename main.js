@@ -1,4 +1,4 @@
-/* NEON HIGHWAY — Grounded Realistic 3D Racing Engine, Ghost Car Replay & AI Rival System */
+/* NEON HIGHWAY — Grounded Realistic 3D Racing Engine, Mid-Run Weather Transitions & Slow-Motion Crash Replay */
 
 (() => {
   // --- REALISTIC ZONE CONFIGURATIONS ---
@@ -10,6 +10,7 @@
       difficulty: 'Normal',
       reqScore: 0,
       fogColor: 0x121824,
+      nightFogColor: 0x060912,
       sunColor: 0xffaa44,
       hudSkinClass: 'hud-skin-district',
       desc: 'Urban avenue lined with building facades, streetlamps, and city traffic.',
@@ -24,6 +25,7 @@
       difficulty: 'Fast',
       reqScore: 2000,
       fogColor: 0x3d2817,
+      nightFogColor: 0x120a04,
       sunColor: 0xffcc44,
       hudSkinClass: 'hud-skin-desert',
       desc: 'Sun-lit freeway through rock formations, desert terrain, and roadside signs.',
@@ -38,6 +40,7 @@
       difficulty: 'Hard',
       reqScore: 6000,
       fogColor: 0x0f172a,
+      nightFogColor: 0x030712,
       sunColor: 0x88aacc,
       hudSkinClass: 'hud-skin-rain',
       desc: 'Overcast twilight highway with wet asphalt sheen, puddles, and lightning flashes.',
@@ -52,6 +55,7 @@
       difficulty: 'Extreme',
       reqScore: 12000,
       fogColor: 0x181028,
+      nightFogColor: 0x080410,
       sunColor: 0xff66aa,
       hudSkinClass: 'hud-skin-orbital',
       desc: 'Winding cliffside highway with mountain peaks, dusk lighting, and heavy traffic.',
@@ -94,6 +98,10 @@
     setGhost: (zone, mode, data) => localStorage.setItem(`neondrift_ghost_${zone}_${mode}`, JSON.stringify(data)),
     getRivalSetting: () => localStorage.getItem('neondrift_setting_rival') === 'true',
     setRivalSetting: (v) => localStorage.setItem('neondrift_setting_rival', v),
+    getWeatherSetting: () => localStorage.getItem('neondrift_setting_weather') !== 'false',
+    setWeatherSetting: (v) => localStorage.setItem('neondrift_setting_weather', v),
+    getCrashReplaySetting: () => localStorage.getItem('neondrift_setting_crashreplay') !== 'false',
+    setCrashReplaySetting: (v) => localStorage.setItem('neondrift_setting_crashreplay', v),
     clearAll: () => {
       localStorage.removeItem('neondrift_3d_best');
       localStorage.removeItem('neondrift_3d_lastname');
@@ -104,6 +112,8 @@
       localStorage.removeItem('neondrift_3d_leaderboard');
       localStorage.removeItem('neondrift_3d_settings');
       localStorage.removeItem('neondrift_setting_rival');
+      localStorage.removeItem('neondrift_setting_weather');
+      localStorage.removeItem('neondrift_setting_crashreplay');
     }
   };
 
@@ -208,7 +218,7 @@
   const ROAD_LENGTH = 500;
   const SEGMENT_LENGTH = 10;
 
-  let scene, camera, renderer;
+  let scene, camera, renderer, dirLight;
   let roadGroup, sunMesh, sceneryGroup;
   let playerCar, playerBodyMesh, playerGlassMesh, playerTaillightMat, shieldBubbleMesh;
   let ghostCarMesh = null;
@@ -220,13 +230,18 @@
   let pickups = [];
   let roadSegments = [];
 
-  // --- GHOST TELEMETRY & RIVAL GLOBALS ---
+  // --- TELEMETRY, RIVAL & REPLAY ROLLING BUFFER GLOBALS ---
   let currentRunTelemetry = [];
+  let crashBuffer = [];
   let activeGhostData = null;
   let isRivalMode = false;
   let rivalDistMeters = 0;
   let rivalLane = 2;
   let hasOvertakenGhost = false;
+
+  // Replay State
+  let isReplaying = false;
+  let replayFrameIndex = 0;
 
   let currentView = 'home';
   let isPlaying = false;
@@ -286,11 +301,13 @@
     if (viewId === 'play') {
       uiContainer.style.display = 'flex';
       updatePlaybackControlsHUD();
-      if (!isPlaying) startRace();
+      if (!isPlaying && !isReplaying) startRace();
     } else {
       uiContainer.style.display = 'none';
       isPlaying = false;
       isPaused = false;
+      isReplaying = false;
+      document.getElementById('replayModal').classList.add('hidden');
       document.getElementById('pauseModal').classList.add('hidden');
       document.getElementById('gameOverModal').classList.add('hidden');
       document.getElementById('highScoreModal').classList.add('hidden');
@@ -370,7 +387,7 @@
     const ambientLight = new THREE.AmbientLight(0xddeeff, 0.7);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfffaed, 1.2);
+    dirLight = new THREE.DirectionalLight(0xfffaed, 1.2);
     dirLight.position.set(40, 80, 40);
     scene.add(dirLight);
 
@@ -391,6 +408,11 @@
     document.getElementById('btn-hud-play').addEventListener('click', startRace);
     document.getElementById('btn-hud-pause').addEventListener('click', togglePause);
     document.getElementById('btn-hud-resume').addEventListener('click', togglePause);
+
+    // Replay Modal Controls
+    document.getElementById('watchReplayBtn').addEventListener('click', startCrashReplay);
+    document.getElementById('btnReplayAgain').addEventListener('click', startCrashReplay);
+    document.getElementById('btnCloseReplay').addEventListener('click', closeCrashReplay);
 
     setupHighScoreModalHandlers();
   }
@@ -608,7 +630,6 @@
     applySelectedCarSkin();
   }
 
-  // --- TRANSLUCENT 3D GHOST CAR MESH ---
   function buildGhostCar() {
     ghostCarMesh = new THREE.Group();
     const gMat = new THREE.MeshStandardMaterial({
@@ -633,11 +654,10 @@
     scene.add(ghostCarMesh);
   }
 
-  // --- SOLID AI RIVAL COMPETITOR CAR MESH ---
   function buildRivalCar() {
     rivalCarMesh = new THREE.Group();
     const rMat = new THREE.MeshStandardMaterial({
-      color: 0x2563eb, // Bright Racing Blue Body
+      color: 0x2563eb,
       roughness: 0.3,
       metalness: 0.8
     });
@@ -758,15 +778,40 @@
     const cfg = Storage.getSettings();
     const mode = Storage.getSelectedMode();
     const activeZoneId = Storage.getSelectedZone();
+    const activeZoneCfg = ZONE_CONFIGS[activeZoneId] || ZONE_CONFIGS.district;
 
-    // Telemetry Sample Recording every 6 frames (100ms sample interval)
+    // --- DYNAMIC MID-RUN WEATHER & TIME-OF-DAY PROGRESSION ---
+    if (Storage.getWeatherSetting()) {
+      const dayProgress = Math.min(1.0, time / 2400); // 40-second smooth transition from dusk to night
+
+      // Sun sets below horizon
+      sunMesh.position.y = 25 - dayProgress * 32;
+
+      // Fog transitions to deep night dark tone
+      const startColor = new THREE.Color(activeZoneCfg.fogColor);
+      const nightColor = new THREE.Color(activeZoneCfg.nightFogColor);
+      scene.fog.color.lerpColors(startColor, nightColor, dayProgress);
+
+      // Ambient light dims while headlights intensify naturally
+      if (dirLight) dirLight.intensity = Math.max(0.25, 1.2 - dayProgress * 0.9);
+      if (headlightLeftLight) headlightLeftLight.intensity = 2.0 + dayProgress * 3.5;
+      if (headlightRightLight) headlightRightLight.intensity = 2.0 + dayProgress * 3.5;
+    }
+
+    // Telemetry Sample Recording & Rolling Crash Replay Buffer (every 100ms)
     if (time % 6 === 0) {
-      currentRunTelemetry.push({
+      const frameData = {
         time,
         posX: playerCar.position.x,
         distanceMeters,
-        score: Math.floor(score)
-      });
+        score: Math.floor(score),
+        speed: currentSpeed,
+        rotZ: playerCar.rotation.z
+      };
+      currentRunTelemetry.push(frameData);
+
+      crashBuffer.push(frameData);
+      if (crashBuffer.length > 60) crashBuffer.shift(); // 6-second rolling window
     }
 
     // --- GHOST REPLAY & LIVE DELTA HUD LOGIC ---
@@ -809,7 +854,6 @@
         }
       }
     } else if (isRivalMode && rivalCarMesh) {
-      // --- RUBBER-BANDING AI RIVAL LOGIC ---
       rivalCarMesh.visible = true;
       const targetRivalDist = distanceMeters + Math.sin(time * 0.05) * 15;
       rivalDistMeters += (targetRivalDist - rivalDistMeters) * 0.05;
@@ -842,7 +886,7 @@
       document.getElementById('ghost-hud-panel').style.display = 'none';
     }
 
-    if (activeZoneId === 'rain' && Math.random() < 0.005) {
+    if (activeZoneId === 'rain' && Math.random() < 0.008) {
       scene.background.setHex(0x334155);
       setTimeout(() => scene.background.setHex(0x0c101d), 60);
     }
@@ -1027,9 +1071,39 @@
     });
   }
 
+  // --- CINEMATIC SLOW-MOTION CRASH REPLAY PLAYBACK LOOP ---
+  function updateCrashReplay() {
+    if (!isReplaying || crashBuffer.length === 0) return;
+
+    // Slow down playback to 0.35x speed (freeze-frame 0.1x at crash moment)
+    const isImpactFrame = replayFrameIndex >= crashBuffer.length - 4;
+    const playbackSpeed = isImpactFrame ? 0.08 : 0.35;
+
+    replayFrameIndex += playbackSpeed;
+
+    if (replayFrameIndex >= crashBuffer.length) {
+      replayFrameIndex = crashBuffer.length - 1; // Hold on final crash frame
+    }
+
+    const frameIdx = Math.floor(replayFrameIndex);
+    const frame = crashBuffer[frameIdx];
+
+    if (frame && playerCar) {
+      playerCar.position.x = frame.posX;
+      playerCar.rotation.z = frame.rotZ || 0;
+
+      // Cinematic Orbiting Camera Angle
+      const camAngle = (replayFrameIndex * 0.08);
+      camera.position.set(frame.posX + Math.sin(camAngle) * 8.5, 3.2 + Math.cos(camAngle) * 1.5, 9);
+      camera.lookAt(frame.posX, 0.6, 0);
+    }
+  }
+
   function renderLoop() {
     if (currentView === 'play' && isPlaying && !isPaused) {
       updateGame();
+    } else if (isReplaying) {
+      updateCrashReplay();
     } else {
       time += 0.5;
       if (playerCar) playerCar.rotation.y += 0.015;
@@ -1047,12 +1121,14 @@
     applyZoneTheme();
     isPlaying = true;
     isPaused = false;
+    isReplaying = false;
 
     score = 0; combo = 1; comboTimer = 0; time = 0; distanceMeters = 0;
     targetLane = 2; playerPosX = 0; shieldActive = false; boostAmount = 100;
     collectedOrbs = 0; zeroDamageHit = false; forkWarningTime = 0; activeBranchType = 'NORMAL';
 
     currentRunTelemetry = [];
+    crashBuffer = [];
     hasOvertakenGhost = false;
     const currentZone = Storage.getSelectedZone();
     const currentMode = Storage.getSelectedMode();
@@ -1068,6 +1144,10 @@
     document.getElementById('fork-banner').style.display = 'none';
     document.getElementById('overtake-banner').style.display = 'none';
     document.getElementById('ghost-hud-panel').style.display = 'none';
+    document.getElementById('replayModal').classList.add('hidden');
+
+    camera.position.set(0, 3.8, 11);
+    camera.lookAt(0, 0, 0);
 
     obstacles.forEach(o => scene.remove(o.mesh));
     pickups.forEach(p => scene.remove(p.mesh));
@@ -1077,6 +1157,25 @@
     document.getElementById('gameOverModal').classList.add('hidden');
     document.getElementById('highScoreModal').classList.add('hidden');
     updatePlaybackControlsHUD();
+  }
+
+  function startCrashReplay() {
+    if (crashBuffer.length < 5) return;
+    isReplaying = true;
+    isPlaying = false;
+    replayFrameIndex = 0;
+
+    document.getElementById('gameOverModal').classList.add('hidden');
+    document.getElementById('highScoreModal').classList.add('hidden');
+    document.getElementById('replayModal').classList.remove('hidden');
+  }
+
+  function closeCrashReplay() {
+    isReplaying = false;
+    document.getElementById('replayModal').classList.add('hidden');
+    document.getElementById('gameOverModal').classList.remove('hidden');
+    camera.position.set(0, 3.8, 11);
+    camera.lookAt(0, 0, 0);
   }
 
   function triggerGameOver(success = false, customMsg = '') {
@@ -1091,7 +1190,6 @@
     const currentZone = Storage.getSelectedZone();
     const currentMode = Storage.getSelectedMode();
 
-    // Check & Save New Ghost Telemetry Baseline
     let isNewGhostBest = false;
     if (!activeGhostData || finalScore > (activeGhostData.score || 0)) {
       isNewGhostBest = true;
@@ -1111,7 +1209,12 @@
     document.getElementById('finalScore').textContent = finalScore;
     document.getElementById('finalBest').textContent = Storage.getBestScore();
 
-    // Populate End-of-Run Ghost / Rival Comparison Card
+    // Show/Hide Watch Replay CTA button based on settings & buffer availability
+    const watchReplayBtn = document.getElementById('watchReplayBtn');
+    if (Storage.getCrashReplaySetting() && crashBuffer.length >= 10) {
+      watchReplayBtn.style.display = 'inline-flex';
+    } else { watchReplayBtn.style.display = 'none'; }
+
     const compCard = document.getElementById('ghostComparisonCard');
     if (activeGhostData || isNewGhostBest) {
       const ghostBestScore = activeGhostData ? activeGhostData.score : finalScore;
@@ -1323,6 +1426,8 @@
     const cfg = Storage.getSettings();
     document.getElementById('settingSound').checked = cfg.sound;
     document.getElementById('settingShake').checked = cfg.shake;
+    document.getElementById('settingWeather').checked = Storage.getWeatherSetting();
+    document.getElementById('settingCrashReplay').checked = Storage.getCrashReplaySetting();
     document.getElementById('settingRival').checked = Storage.getRivalSetting();
 
     document.getElementById('settingSound').onchange = (e) => {
@@ -1334,6 +1439,14 @@
     document.getElementById('settingShake').onchange = (e) => {
       cfg.shake = e.target.checked;
       Storage.setSettings(cfg);
+    };
+
+    document.getElementById('settingWeather').onchange = (e) => {
+      Storage.setWeatherSetting(e.target.checked);
+    };
+
+    document.getElementById('settingCrashReplay').onchange = (e) => {
+      Storage.setCrashReplaySetting(e.target.checked);
     };
 
     document.getElementById('settingRival').onchange = (e) => {

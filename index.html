@@ -296,6 +296,28 @@
 
           <div class="setting-row">
             <div>
+              <div style="font-weight:bold; color:#fff;">Dynamic Mid-Run Weather</div>
+              <div style="font-size:13px; color:var(--text-muted);">Gradual time-of-day progression (dusk to night) and rain/sandstorm ramping</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="settingWeather" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div style="font-weight:bold; color:#fff;">Slow-Motion Crash Replay</div>
+              <div style="font-size:13px; color:var(--text-muted);">Rolling 6s recording for cinematic orbiting crash replay</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="settingCrashReplay" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
               <div style="font-weight:bold; color:#fff;">AI Rival Mode</div>
               <div style="font-size:13px; color:var(--text-muted);">Race against rubber-banding AI competitor in place of personal ghost</div>
             </div>
@@ -413,6 +435,19 @@
     </div>
   </div>
 
+  <!-- Slow-Motion Cinematic Crash Replay Overlay -->
+  <div id="replayModal" class="hidden">
+    <div class="replay-badge-top">
+      <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="#fff"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+      SLOW-MOTION CRASH REPLAY
+    </div>
+
+    <div class="replay-controls-overlay">
+      <button id="btnReplayAgain" class="cyber-btn" style="padding:10px 20px; font-size:13px;">REPLAY AGAIN</button>
+      <button id="btnCloseReplay" class="cyber-btn" style="padding:10px 20px; font-size:13px; border-color:var(--text-muted); color:var(--text-muted);">CLOSE REPLAY</button>
+    </div>
+  </div>
+
   <!-- Custom High Score Input Modal -->
   <div id="highScoreModal" class="modal-overlay hidden">
     <div class="card-panel" style="text-align:center;">
@@ -453,7 +488,11 @@
       <!-- Ghost / Rival Comparison Card Container -->
       <div id="ghostComparisonCard" class="ghost-comparison-card" style="display:none;"></div>
 
-      <div style="display:flex; gap:12px; justify-content:center;">
+      <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
+        <button id="watchReplayBtn" class="cyber-btn" style="border-color:#ff0055; color:#ff0055; display:none;">
+          <svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+          WATCH REPLAY
+        </button>
         <button id="retryBtn" class="cyber-btn">RETRY RUN</button>
         <a href="#map" class="cyber-btn" style="border-color:var(--text-muted); color:var(--text-muted);">WORLD MAP</a>
       </div>
