@@ -907,9 +907,9 @@
     renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
-  document.getElementById('startRaceBtn').addEventListener('click', () => { window.location.hash = '#play'; startRace(); });
-  document.getElementById('retryBtn').addEventListener('click', startRace);
-  document.getElementById('resumeBtn').addEventListener('click', togglePause);
+  document.getElementById('startRaceBtn')?.addEventListener('click', () => { window.location.hash = '#play'; startRace(); });
+  document.getElementById('retryBtn')?.addEventListener('click', startRace);
+  document.getElementById('resumeBtn')?.addEventListener('click', togglePause);
 
   initThree();
   initRouter();
