@@ -3,16 +3,255 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NEON DRIFT: SYNTHWAVE OVERDRIVE 3D</title>
+  <title>NEON HIGHWAY — 3D Synthwave Car Dodge Racer</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
-  <!-- 3D WebGL Canvas Container -->
+  <!-- Persistent Cyberpunk Navigation Header -->
+  <header id="app-header">
+    <a href="#home" class="nav-brand">
+      <span class="nav-logo-text">NEON HIGHWAY</span>
+    </a>
+
+    <nav>
+      <ul class="nav-links">
+        <li><a href="#home" class="nav-link active">HOME</a></li>
+        <li><a href="#how-to-play" class="nav-link">RULES</a></li>
+        <li><a href="#leaderboard" class="nav-link">LEADERBOARD</a></li>
+        <li><a href="#garage" class="nav-link">GARAGE</a></li>
+        <li><a href="#settings" class="nav-link">SETTINGS</a></li>
+      </ul>
+    </nav>
+
+    <a href="#play" id="startRaceBtn" class="nav-cta">PLAY NOW</a>
+  </header>
+
+  <!-- 3D WebGL Background Canvas -->
   <div id="canvas-container"></div>
 
-  <!-- HUD Overlay Layer -->
-  <div id="ui-container">
+  <!-- Multi-Page View Container -->
+  <main id="page-container">
+
+    <!-- 1. LANDING PAGE VIEW (#home) -->
+    <section id="view-home" class="view-page active">
+      <div class="content-wrapper hero-section">
+        <div id="homeBestRibbon" class="ribbon-bar" style="display:none;"></div>
+        <h1 class="hero-title">NEON HIGHWAY</h1>
+        <p class="hero-tagline">INFINITE 3D SYNTHWAVE OVERDRIVE RACER</p>
+
+        <div class="hero-actions">
+          <a href="#play" class="btn-primary"><span>⚡ PLAY NOW</span></a>
+          <a href="#how-to-play" class="btn-secondary">HOW TO PLAY</a>
+          <a href="#garage" class="btn-secondary">GARAGE</a>
+        </div>
+
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🏎️</div>
+            <div class="feature-title">Dodge Traffic</div>
+            <div class="feature-desc">Navigate 5 lanes at high speed to avoid oncoming red barriers &amp; homing hunter cars.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-title">Collect Nitro</div>
+            <div class="feature-desc">Grab yellow nitro pickups to boost, smash destructible barriers, and trigger EMP blast waves.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🏆</div>
+            <div class="feature-title">Chase High Scores</div>
+            <div class="feature-desc">Chain cyan orb pickups for combo multipliers up to 20x and claim the #1 spot on the local leaderboard.</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon">🎨</div>
+            <div class="feature-title">Unlock Car Skins</div>
+            <div class="feature-desc">Survive longer and earn points to unlock futuristic vehicle variants in the Garage.</div>
+          </div>
+        </div>
+
+        <footer>
+          Neon Highway v2.5 — Built with Three.js &amp; WebGL · Client-Side Only
+        </footer>
+      </div>
+    </section>
+
+    <!-- 2. HOW TO PLAY / RULES VIEW (#how-to-play) -->
+    <section id="view-how-to-play" class="view-page">
+      <div class="content-wrapper">
+        <h2 class="page-title">RULES &amp; CONTROLS</h2>
+        <p class="page-subtitle">Master the synthwave highway and maximize your run survival.</p>
+
+        <div class="glass-card">
+          <h3 style="font-family:'Orbitron'; color:var(--cyan); margin-bottom:16px;">DRIVING CONTROLS</h3>
+          <div class="controls-flex">
+            <div class="preview-card">
+              <div class="preview-badge" style="background:rgba(0,243,255,0.1); border:1px solid var(--cyan);">🎮</div>
+              <div>
+                <div style="font-weight:bold; color:#fff;">Lane Steer</div>
+                <div style="font-size:13px; color:var(--text-muted);">Use <kbd>A</kbd> / <kbd>D</kbd> or <kbd>←</kbd> / <kbd>→</kbd> keys</div>
+              </div>
+            </div>
+            <div class="preview-card">
+              <div class="preview-badge" style="background:rgba(255,230,0,0.1); border:1px solid var(--yellow);">⚡</div>
+              <div>
+                <div style="font-weight:bold; color:#fff;">Nitro Boost</div>
+                <div style="font-size:13px; color:var(--text-muted);">Hold <kbd>SPACE BAR</kbd> for extra speed</div>
+              </div>
+            </div>
+            <div class="preview-card">
+              <div class="preview-badge" style="background:rgba(255,0,170,0.1); border:1px solid var(--magenta);">⏸️</div>
+              <div>
+                <div style="font-weight:bold; color:#fff;">Pause Game</div>
+                <div style="font-size:13px; color:var(--text-muted);">Press <kbd>P</kbd> or <kbd>ESC</kbd> during race</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 style="font-family:'Orbitron'; color:var(--yellow); margin-bottom:16px;">HAZARDS LEGEND</h3>
+          <div class="controls-flex">
+            <div class="preview-card">
+              <div class="preview-badge" style="background:#ff0044; box-shadow:0 0 10px #ff0044;">🔴</div>
+              <div>
+                <div style="font-weight:bold; color:#fff;">Standard Barrier</div>
+                <div style="font-size:13px; color:var(--text-muted);">Fixed red traffic obstacle. Dodge to avoid run crash.</div>
+              </div>
+            </div>
+            <div class="preview-card">
+              <div class="preview-badge" style="background:#ff7700; box-shadow:0 0 10px #ff7700;">🏎️</div>
+              <div>
+                <div style="font-weight:bold; color:#fff;">Orange Hunter</div>
+                <div style="font-size:13px; color:var(--text-muted);">Homing vehicle that drifts across lanes to block your path.</div>
+              </div>
+            </div>
+            <div class="preview-card">
+              <div class="preview-badge" style="background:#ffe600; box-shadow:0 0 10px #ffe600;">💥</div>
+              <div>
+                <div style="font-weight:bold; color:#fff;">Destructible Yellow</div>
+                <div style="font-size:13px; color:var(--text-muted);">Smash through while Nitro boosting to earn shockwave bonus score!</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card">
+          <h3 style="font-family:'Orbitron'; color:var(--green); margin-bottom:16px;">ROAD PICKUPS</h3>
+          <div class="controls-flex">
+            <div class="preview-card">
+              <div class="preview-badge" style="background:rgba(0,243,255,0.2); border:1px solid var(--cyan);">💎</div>
+              <div>
+                <div style="font-weight:bold; color:#fff;">Cyan Orbs</div>
+                <div style="font-size:13px; color:var(--text-muted);">Grants score bonus and increments your combo multiplier up to 20x.</div>
+              </div>
+            </div>
+            <div class="preview-card">
+              <div class="preview-badge" style="background:rgba(255,0,170,0.2); border:1px solid var(--magenta);">🛡️</div>
+              <div>
+                <div style="font-weight:bold; color:#fff;">Magenta Shield</div>
+                <div style="font-size:13px; color:var(--text-muted);">Equips a 3D wireframe bubble that absorbs one hazard collision.</div>
+              </div>
+            </div>
+            <div class="preview-card">
+              <div class="preview-badge" style="background:rgba(255,230,0,0.2); border:1px solid var(--yellow);">💣</div>
+              <div>
+                <div style="font-weight:bold; color:#fff;">Yellow EMP Bomb</div>
+                <div style="font-size:13px; color:var(--text-muted);">Instantly refills Nitro and clears all active screen hazards.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="text-align:center; margin-top:32px;">
+          <a href="#play" class="btn-primary">GOT IT, LET'S DRIVE</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. GAME VIEW (#play) -->
+    <section id="view-play" class="view-page" style="padding:0;">
+      <!-- Layered in main.js HUD DOM -->
+    </section>
+
+    <!-- 4. LEADERBOARD VIEW (#leaderboard) -->
+    <section id="view-leaderboard" class="view-page">
+      <div class="content-wrapper">
+        <h2 class="page-title">TOP DRIVERS LEADERBOARD</h2>
+        <p class="page-subtitle">Local high scores stored on your device.</p>
+
+        <div class="glass-card">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>RANK</th>
+                <th>DRIVER</th>
+                <th>SCORE</th>
+                <th>CAR USED</th>
+                <th>DATE</th>
+              </tr>
+            </thead>
+            <tbody id="leaderboardBody">
+              <!-- Populated via main.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. GARAGE VIEW (#garage) -->
+    <section id="view-garage" class="view-page">
+      <div class="content-wrapper">
+        <h2 class="page-title">CAR GARAGE</h2>
+        <p class="page-subtitle">Unlock and select custom neon vehicle skins.</p>
+
+        <div id="garageGrid" class="garage-grid">
+          <!-- Populated via main.js -->
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. SETTINGS VIEW (#settings) -->
+    <section id="view-settings" class="view-page">
+      <div class="content-wrapper">
+        <h2 class="page-title">GAME SETTINGS</h2>
+        <p class="page-subtitle">Customize audio, graphics, and gameplay preferences.</p>
+
+        <div class="glass-card" style="max-width:600px;">
+          <div class="setting-row">
+            <div>
+              <div style="font-weight:bold; color:#fff;">Sound &amp; Engine Synth</div>
+              <div style="font-size:13px; color:var(--text-muted);">Enable engine rumble sound synth and pickup audio FX</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="settingSound" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <div style="font-weight:bold; color:#fff;">Screen Shake FX</div>
+              <div style="font-size:13px; color:var(--text-muted);">Camera shake during collisions, EMP explosions, and crashes</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="settingShake" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row" style="border:none; margin-top:20px; flex-direction:column; align-items:flex-start; gap:12px;">
+            <div style="font-weight:bold; color:#ff0044;">Reset Game Progress</div>
+            <div style="font-size:13px; color:var(--text-muted);">Clears saved high scores, unlocked garage cars, and custom settings.</div>
+            <button id="resetDataBtn" class="btn-secondary" style="border-color:#ff0044; color:#ff0044;">RESET ALL PROGRESS</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- HUD Layer Layered Over 3D Canvas (Active during #play) -->
+  <div id="ui-container" style="display:none;">
     <div id="hud-top">
       <div class="hud-panel">
         <div class="hud-group">
@@ -41,7 +280,6 @@
       </div>
     </div>
 
-    <!-- Bottom HUD controls & Lane indicator -->
     <div style="display:flex; justify-content:space-between; align-items:flex-end; width:100%;">
       <div id="boost-container" class="hud-panel">
         <span class="hud-label">NITRO BOOST</span>
@@ -59,72 +297,37 @@
       </div>
 
       <div id="hint-bar">
-        [A/D or ARROW KEYS] STEER · [SPACE] NITRO · [P] PAUSE
+        [A/D or ARROWS] STEER · [SPACE] NITRO · [P/ESC] PAUSE
       </div>
-    </div>
-  </div>
-
-  <!-- Main Menu Modal Overlay -->
-  <div id="menuModal" class="modal-overlay">
-    <h1 class="title-glow">NEON DRIFT</h1>
-    <div class="subtitle">SYNTHWAVE OVERDRIVE 3D</div>
-
-    <div class="card-panel">
-      <h3 style="font-family:'Orbitron'; color:#00f3ff; font-size:16px; letter-spacing:2px;">HOW TO PLAY</h3>
-      <div class="how-to-grid">
-        <div class="grid-item">
-          <span class="item-icon" style="background:#00f3ff; box-shadow:0 0 8px #00f3ff;"></span>
-          <span><strong>Steer:</strong> A/D, Arrows, or Drag</span>
-        </div>
-        <div class="grid-item">
-          <span class="item-icon" style="background:#ffe600; box-shadow:0 0 8px #ffe600;"></span>
-          <span><strong>Nitro Boost:</strong> Space Bar</span>
-        </div>
-        <div class="grid-item">
-          <span class="item-icon" style="background:#00f3ff; box-shadow:0 0 8px #00f3ff;"></span>
-          <span>Cyan Orbs: Score + Combo</span>
-        </div>
-        <div class="grid-item">
-          <span class="item-icon" style="background:#ff00aa; box-shadow:0 0 8px #ff00aa;"></span>
-          <span>Magenta Torus: 1-Hit Shield</span>
-        </div>
-        <div class="grid-item">
-          <span class="item-icon" style="background:#ffe600; box-shadow:0 0 8px #ffe600;"></span>
-          <span>Yellow Bomb: Clear Hazards</span>
-        </div>
-        <div class="grid-item">
-          <span class="item-icon" style="background:#ff7700; box-shadow:0 0 8px #ff7700;"></span>
-          <span>Orange Hunters: Avoid Drift</span>
-        </div>
-      </div>
-      <p style="font-size:12px; color:#85a6c9; line-height:1.5;">Drive down the infinite 3D synthwave highway. Hit yellow barriers while boosting to smash through them for extra points!</p>
-      <button id="startBtn" class="cyber-btn">START RACE</button>
     </div>
   </div>
 
   <!-- Game Over Modal -->
   <div id="gameOverModal" class="modal-overlay hidden">
     <h1 class="title-glow" style="background: linear-gradient(180deg, #ff0055 0%, #ff7700 100%); -webkit-background-clip: text;">RUN CRASHED</h1>
-    
+
     <div class="card-panel" style="text-align:center;">
       <div style="font-family:'Orbitron'; font-size:14px; color:#799ec2;">FINAL SCORE</div>
       <div id="finalScore" style="font-family:'Orbitron'; font-size:42px; color:#00f3ff; text-shadow:0 0 15px #00f3ff; font-weight:900;">0</div>
-      <div style="font-family:'Orbitron'; font-size:12px; color:#ff00aa;">BEST HIGH SCORE: <span id="finalBest">0</span></div>
+      <div style="font-family:'Orbitron'; font-size:12px; color:#ff00aa; margin-bottom:16px;">BEST HIGH SCORE: <span id="finalBest">0</span></div>
 
-      <button id="retryBtn" class="cyber-btn" style="margin-top:20px;">RETRY RACE</button>
+      <div style="display:flex; gap:12px; justify-content:center;">
+        <button id="retryBtn" class="cyber-btn">RETRY RUN</button>
+        <a href="#home" class="cyber-btn" style="border-color:var(--text-muted); color:var(--text-muted);">MAIN MENU</a>
+      </div>
     </div>
   </div>
 
   <!-- Pause Modal -->
   <div id="pauseModal" class="modal-overlay hidden">
     <h1 class="title-glow" style="background: linear-gradient(180deg, #ffe600 0%, #ff7700 100%); -webkit-background-clip: text;">RACE PAUSED</h1>
-    <p style="font-family:'Orbitron'; color:#a0c4e8; margin-bottom:16px;">Press <strong>P</strong> to resume driving.</p>
+    <p style="font-family:'Orbitron'; color:#a0c4e8; margin-bottom:16px;">Press <strong>P</strong> or <strong>ESC</strong> to resume driving.</p>
     <button id="resumeBtn" class="cyber-btn" style="border-color:#ffe600; color:#ffe600; text-shadow:0 0 10px #ffe600;">RESUME RACE</button>
   </div>
 
-  <!-- Three.js CDN Library -->
+  <!-- Three.js Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <!-- Main Game Engine -->
+  <!-- Game Engine & SPA Router -->
   <script src="main.js"></script>
 </body>
 </html>
