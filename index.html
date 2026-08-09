@@ -77,22 +77,22 @@
             <div class="feature-icon">
               <svg class="cyber-icon-lg" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><path d="M5 17h14M5 12h14M7 8h10l2 4H5l2-4z"/></svg>
             </div>
-            <div class="feature-title">Branching Paths</div>
-            <div class="feature-desc">Steer into decision forks during races to choose between Shortcuts, High-Risk Hazard Lanes, or Highways.</div>
+            <div class="feature-title">Procedural Track Seeds</div>
+            <div class="feature-desc">Every run uses a deterministic seed PRNG. Share seeds e.g. *BRUTAL-4471* to race identical tracks worldwide.</div>
           </div>
           <div class="feature-card">
             <div class="feature-icon">
               <svg class="cyber-icon-lg" viewBox="0 0 24 24" fill="none" stroke="var(--green)"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
             </div>
-            <div class="feature-title">World Map Campaign</div>
-            <div class="feature-desc">Unlock 4 distinct zones (*Neon District, Desert Overpass, Rain City, Orbital Ring*) on the circuit map.</div>
+            <div class="feature-title">Live Multiplayer Ghosts</div>
+            <div class="feature-desc">Race against multiple translucent 3D player ghosts pulled from the serverless API with floating name tags.</div>
           </div>
           <div class="feature-card">
             <div class="feature-icon">
               <svg class="cyber-icon-lg" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
             </div>
-            <div class="feature-title">5 Challenge Modes</div>
-            <div class="feature-desc">Master Time Trials, Zero Damage runs, Orb Collector trials, and dense Hunter Gauntlets.</div>
+            <div class="feature-title">Daily Featured Seed</div>
+            <div class="feature-desc">Race the worldwide Daily Featured Seed derived from today's date for global leaderboard placement.</div>
           </div>
           <div class="feature-card">
             <div class="feature-icon">
@@ -219,7 +219,14 @@
 
     <!-- 4. GAME VIEW (#play) -->
     <section id="view-play" class="view-page" style="padding:0;">
-      <!-- Layered in main.js HUD DOM -->
+      <!-- Pre-Race Seed Configuration Panel -->
+      <div id="seed-bar-panel" class="seed-bar-panel" style="position:absolute; top:85px; left:50%; transform:translateX(-50%); z-index:30;">
+        <span style="font-family:'Orbitron'; font-size:11px; color:var(--cyan); letter-spacing:1px;">TRACK SEED:</span>
+        <input type="text" id="trackSeedInput" class="seed-input" value="BRUTAL-4471" maxlength="20">
+        <button id="btnDailySeed" class="playback-btn-top btn-top-play" style="font-size:10px; padding:6px 12px;">DAILY SEED</button>
+        <button id="btnCopySeed" class="playback-btn-top btn-top-pause" style="font-size:10px; padding:6px 12px;">COPY SEED</button>
+        <span id="rivalsLoadedBadge" style="font-family:'Orbitron'; font-size:11px; color:var(--green); margin-left:auto;">3 RIVALS LOADED</span>
+      </div>
     </section>
 
     <!-- 5. LEADERBOARD VIEW (#leaderboard) -->
@@ -338,6 +345,9 @@
 
   </main>
 
+  <!-- Container for Floating Ghost Name Tags Layered Over 3D Canvas -->
+  <div id="ghostNametagsContainer" style="position:fixed; inset:0; pointer-events:none; z-index:25;"></div>
+
   <!-- In-Race Overtake Callout Banner Overlay -->
   <div id="overtake-banner">AHEAD OF GHOST!</div>
 
@@ -406,6 +416,7 @@
       <div class="ghost-hud-header">
         <svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><polygon points="4 15 12 9 20 15 4 15"/></svg>
         <span id="ghostHudLabel">VS GHOST</span>
+        <span id="ghostRankBadge" style="color:var(--yellow); font-weight:bold; margin-left:auto;">RANK #1</span>
       </div>
       <div id="ghostDeltaReadout" class="ghost-delta-readout ghost-delta-ahead">+0.0s ahead</div>
       <div class="ghost-progress-outer">

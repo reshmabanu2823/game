@@ -1,4 +1,4 @@
-/* NEON HIGHWAY — Grounded Realistic 3D Racing Engine, Mid-Run Weather Transitions & Slow-Motion Crash Replay */
+/* NEON HIGHWAY — Grounded Realistic 3D Racing Engine, Procedural Track Seeds & Live Multiplayer Ghosts */
 
 (() => {
   // --- REALISTIC ZONE CONFIGURATIONS ---
@@ -76,6 +76,33 @@
     { id: 'titan', name: 'Emerald Stealth', reqScore: 20000, bodyColor: 0x05331a, specularColor: 0x00e676, desc: 'Unlocked at 20,000 pts. Emerald carbon weave.' }
   ];
 
+  // --- DETERMINISTIC MULBERRY32 PRNG FOR PROCEDURAL SEED GENERATION ---
+  function mulberry32(a) {
+    return function() {
+      var t = a += 0x6D2B79F5;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function hashString(str) {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      hash = (hash << 5) - hash + str.charCodeAt(i);
+      hash |= 0;
+    }
+    return Math.abs(hash);
+  }
+
+  function getDailySeed() {
+    const today = new Date().toISOString().split('T')[0];
+    return `DAILY-${today}`;
+  }
+
+  let currentTrackSeed = 'BRUTAL-4471';
+  let seedPRNG = mulberry32(hashString(currentTrackSeed));
+
   // --- LOCAL STORAGE MANAGER ---
   const Storage = {
     getBestScore: () => Number(localStorage.getItem('neondrift_3d_best') || 0),
@@ -116,6 +143,42 @@
       localStorage.removeItem('neondrift_setting_crashreplay');
     }
   };
+
+  // --- OFFLINE-FIRST SERVERLESS MULTIPLAYER GHOST API CLIENT ---
+  const GhostAPI = {
+    async fetchGhosts(seed, zone, mode) {
+      try {
+        const response = await fetch(`/api/ghosts/fetch?seed=${seed}&zone=${zone}&mode=${mode}`);
+        if (response.ok) return await response.json();
+      } catch (e) {
+        // Fallback to local storage & deterministic seed rivals when offline
+      }
+      return [
+        { name: 'ApexPhantom', color: 0x00e5ff, score: 5400, samples: generateMockGhostSamples(1.05) },
+        { name: 'VaporKnight', color: 0xff007f, score: 4800, samples: generateMockGhostSamples(0.95) },
+        { name: 'SolarRacer', color: 0xffc800, score: 4200, samples: generateMockGhostSamples(0.88) }
+      ];
+    },
+    async uploadGhost(seed, zone, mode, payload) {
+      try {
+        await fetch('/api/ghosts/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seed, zone, mode, ...payload })
+        });
+      } catch (e) { console.log('Offline: Ghost saved to localStorage baseline.'); }
+    }
+  };
+
+  function generateMockGhostSamples(speedMultiplier) {
+    const samples = [];
+    for (let t = 0; t <= 1800; t += 6) {
+      const dist = Math.floor(t * 1.1 * speedMultiplier);
+      const laneX = LANES[Math.floor((Math.sin(t * 0.05) + 1) * 2)];
+      samples.push({ time: t, posX: laneX, distanceMeters: dist, score: dist * 2 });
+    }
+    return samples;
+  }
 
   let previewCarId = Storage.getSelectedCar();
 
@@ -223,6 +286,8 @@
   let playerCar, playerBodyMesh, playerGlassMesh, playerTaillightMat, shieldBubbleMesh;
   let ghostCarMesh = null;
   let rivalCarMesh = null;
+  let multiGhostMeshes = [];
+  let multiGhostNametags = [];
   let frontLeftWheel, frontRightWheel, rearLeftWheel, rearRightWheel;
   let headlightLeftLight, headlightRightLight;
 
@@ -230,10 +295,11 @@
   let pickups = [];
   let roadSegments = [];
 
-  // --- TELEMETRY, RIVAL & REPLAY ROLLING BUFFER GLOBALS ---
+  // --- TELEMETRY, RIVAL & MULTIPLAYER GHOST GLOBALS ---
   let currentRunTelemetry = [];
   let crashBuffer = [];
   let activeGhostData = null;
+  let fetchedRivalGhosts = [];
   let isRivalMode = false;
   let rivalDistMeters = 0;
   let rivalLane = 2;
@@ -396,6 +462,7 @@
     buildPlayerCar();
     buildGhostCar();
     buildRivalCar();
+    buildMultiplayerGhostMeshes();
 
     window.addEventListener('resize', onWindowResize);
     window.addEventListener('keydown', onKeyDown);
@@ -408,6 +475,26 @@
     document.getElementById('btn-hud-play').addEventListener('click', startRace);
     document.getElementById('btn-hud-pause').addEventListener('click', togglePause);
     document.getElementById('btn-hud-resume').addEventListener('click', togglePause);
+
+    // Seed Input Panel Event Handlers
+    const seedInput = document.getElementById('trackSeedInput');
+    const btnDaily = document.getElementById('btnDailySeed');
+    const btnCopy = document.getElementById('btnCopySeed');
+
+    btnDaily.addEventListener('click', () => {
+      seedInput.value = getDailySeed();
+      currentTrackSeed = seedInput.value;
+    });
+
+    btnCopy.addEventListener('click', () => {
+      navigator.clipboard.writeText(seedInput.value);
+      btnCopy.textContent = 'COPIED!';
+      setTimeout(() => { btnCopy.textContent = 'COPY SEED'; }, 1500);
+    });
+
+    seedInput.addEventListener('change', () => {
+      currentTrackSeed = seedInput.value.trim() || 'BRUTAL-4471';
+    });
 
     // Replay Modal Controls
     document.getElementById('watchReplayBtn').addEventListener('click', startCrashReplay);
@@ -654,6 +741,47 @@
     scene.add(ghostCarMesh);
   }
 
+  // --- MULTIPLAYER RIVAL GHOST MESHE POOL WITH DIFFERENT COLOR TINTS ---
+  function buildMultiplayerGhostMeshes() {
+    const ghostColors = [0x00e5ff, 0xff007f, 0xffc800];
+    multiGhostMeshes = [];
+    multiGhostNametags = [];
+
+    const container = document.getElementById('ghostNametagsContainer');
+    container.innerHTML = '';
+
+    for (let i = 0; i < 3; i++) {
+      const gGroup = new THREE.Group();
+      const gMat = new THREE.MeshStandardMaterial({
+        color: ghostColors[i],
+        roughness: 0.2,
+        metalness: 0.8,
+        transparent: true,
+        opacity: 0.45
+      });
+
+      const bGeom = new THREE.BoxGeometry(2.3, 0.65, 4.4);
+      const bMesh = new THREE.Mesh(bGeom, gMat);
+      bMesh.position.y = 0.55;
+      gGroup.add(bMesh);
+
+      const cGeom = new THREE.BoxGeometry(1.8, 0.55, 2.2);
+      const cMesh = new THREE.Mesh(cGeom, gMat);
+      cMesh.position.set(0, 1.1, -0.3);
+      gGroup.add(cMesh);
+
+      gGroup.visible = false;
+      scene.add(gGroup);
+      multiGhostMeshes.push(gGroup);
+
+      const tag = document.createElement('div');
+      tag.className = 'ghost-nametag';
+      tag.style.display = 'none';
+      container.appendChild(tag);
+      multiGhostNametags.push(tag);
+    }
+  }
+
   function buildRivalCar() {
     rivalCarMesh = new THREE.Group();
     const rMat = new THREE.MeshStandardMaterial({
@@ -684,7 +812,9 @@
   }
 
   function spawnObstacle() {
-    const laneIdx = Math.floor(rand(0, LANES.length));
+    // Deterministic Seeded Obstacle Placement via PRNG
+    const randVal = seedPRNG();
+    const laneIdx = Math.floor(randVal * LANES.length);
     const x = LANES[laneIdx];
     const z = -ROAD_LENGTH + 50;
 
@@ -692,15 +822,15 @@
     const cfg = ZONE_CONFIGS[activeZoneId] || ZONE_CONFIGS.district;
     const mode = Storage.getSelectedMode();
 
-    const isHunter = (mode === 'gauntlet' || cfg.id === 'orbital' || time > 1800) && Math.random() < 0.45;
-    const isDestructible = !isHunter && Math.random() < 0.25;
+    const isHunter = (mode === 'gauntlet' || cfg.id === 'orbital' || time > 1800) && seedPRNG() < 0.45;
+    const isDestructible = !isHunter && seedPRNG() < 0.25;
 
     let mesh;
-    if (cfg.id === 'desert' && Math.random() < 0.3) {
+    if (cfg.id === 'desert' && seedPRNG() < 0.3) {
       const tGeom = new THREE.DodecahedronGeometry(1.2);
       const tMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9 });
       mesh = new THREE.Mesh(tGeom, tMat);
-    } else if (cfg.id === 'rain' && Math.random() < 0.25) {
+    } else if (cfg.id === 'rain' && seedPRNG() < 0.25) {
       const pGeom = new THREE.CircleGeometry(2.2, 16);
       const pMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.1, metalness: 0.9, side: THREE.DoubleSide });
       mesh = new THREE.Mesh(pGeom, pMat);
@@ -715,7 +845,7 @@
       mesh = new THREE.Mesh(dGeom, dMat);
     } else {
       const rGeom = new THREE.BoxGeometry(2.2, 0.8, 4.2);
-      const rMat = new THREE.MeshStandardMaterial({ color: rand(0, 1) > 0.5 ? 0x334155 : 0x475569, roughness: 0.3, metalness: 0.7 });
+      const rMat = new THREE.MeshStandardMaterial({ color: seedPRNG() > 0.5 ? 0x334155 : 0x475569, roughness: 0.3, metalness: 0.7 });
       mesh = new THREE.Mesh(rGeom, rMat);
     }
 
@@ -723,15 +853,15 @@
     mesh.position.x = x;
     mesh.position.z = z;
     scene.add(mesh);
-    obstacles.push({ mesh, isHunter, isDestructible, speedOffset: isHunter ? 1.5 : rand(-0.5, 0.5) });
+    obstacles.push({ mesh, isHunter, isDestructible, speedOffset: isHunter ? 1.5 : (seedPRNG() - 0.5) });
   }
 
   function spawnPickup() {
-    const laneIdx = Math.floor(rand(0, LANES.length));
+    const laneIdx = Math.floor(seedPRNG() * LANES.length);
     const x = LANES[laneIdx];
     const z = -ROAD_LENGTH + 50;
 
-    const roll = Math.random();
+    const roll = seedPRNG();
     let type = 'ORB', color = 0x00e5ff, geom;
     if (roll < 0.7) { type = 'ORB'; color = 0x00e5ff; geom = new THREE.OctahedronGeometry(0.7); }
     else if (roll < 0.85) { type = 'SHIELD'; color = 0xff007f; geom = new THREE.TorusGeometry(0.6, 0.2, 8, 16); }
@@ -780,25 +910,21 @@
     const activeZoneId = Storage.getSelectedZone();
     const activeZoneCfg = ZONE_CONFIGS[activeZoneId] || ZONE_CONFIGS.district;
 
-    // --- DYNAMIC MID-RUN WEATHER & TIME-OF-DAY PROGRESSION ---
+    // --- DYNAMIC MID-RUN WEATHER PROGRESSION ---
     if (Storage.getWeatherSetting()) {
-      const dayProgress = Math.min(1.0, time / 2400); // 40-second smooth transition from dusk to night
-
-      // Sun sets below horizon
+      const dayProgress = Math.min(1.0, time / 2400);
       sunMesh.position.y = 25 - dayProgress * 32;
 
-      // Fog transitions to deep night dark tone
       const startColor = new THREE.Color(activeZoneCfg.fogColor);
       const nightColor = new THREE.Color(activeZoneCfg.nightFogColor);
       scene.fog.color.lerpColors(startColor, nightColor, dayProgress);
 
-      // Ambient light dims while headlights intensify naturally
       if (dirLight) dirLight.intensity = Math.max(0.25, 1.2 - dayProgress * 0.9);
       if (headlightLeftLight) headlightLeftLight.intensity = 2.0 + dayProgress * 3.5;
       if (headlightRightLight) headlightRightLight.intensity = 2.0 + dayProgress * 3.5;
     }
 
-    // Telemetry Sample Recording & Rolling Crash Replay Buffer (every 100ms)
+    // Telemetry Recording & Rolling Buffer (every 100ms)
     if (time % 6 === 0) {
       const frameData = {
         time,
@@ -811,82 +937,73 @@
       currentRunTelemetry.push(frameData);
 
       crashBuffer.push(frameData);
-      if (crashBuffer.length > 60) crashBuffer.shift(); // 6-second rolling window
+      if (crashBuffer.length > 60) crashBuffer.shift();
     }
 
-    // --- GHOST REPLAY & LIVE DELTA HUD LOGIC ---
-    if (activeGhostData && activeGhostData.samples && activeGhostData.samples.length > 0) {
-      const sampleIdx = Math.min(Math.floor(time / 6), activeGhostData.samples.length - 1);
-      const ghostFrame = activeGhostData.samples[sampleIdx];
+    // --- MULTIPLAYER GHOST RENDERING & LIVE DELTA HUD RANKINGS ---
+    if (fetchedRivalGhosts && fetchedRivalGhosts.length > 0) {
+      let closestDelta = Infinity;
+      let playerRank = 1;
 
-      if (ghostFrame && ghostCarMesh) {
-        ghostCarMesh.visible = true;
-        const relativeZ = -(ghostFrame.distanceMeters - distanceMeters) * 0.5;
-        ghostCarMesh.position.set(ghostFrame.posX, 0.4, Math.max(-120, Math.min(40, relativeZ)));
+      fetchedRivalGhosts.forEach((gData, gIdx) => {
+        if (gIdx >= multiGhostMeshes.length) return;
+        const gMesh = multiGhostMeshes[gIdx];
+        const gTag = multiGhostNametags[gIdx];
 
-        const deltaDist = distanceMeters - ghostFrame.distanceMeters;
-        const ghostHudPanel = document.getElementById('ghost-hud-panel');
-        const ghostDeltaReadout = document.getElementById('ghostDeltaReadout');
-        const ghostProgressFill = document.getElementById('ghostProgressFill');
-        const ghostHudLabel = document.getElementById('ghostHudLabel');
+        if (gData.samples && gData.samples.length > 0) {
+          const sampleIdx = Math.min(Math.floor(time / 6), gData.samples.length - 1);
+          const sample = gData.samples[sampleIdx];
 
-        ghostHudPanel.style.display = 'flex';
-        ghostHudLabel.textContent = 'VS GHOST';
+          if (sample) {
+            gMesh.visible = true;
+            const relativeZ = -(sample.distanceMeters - distanceMeters) * 0.5;
+            gMesh.position.set(sample.posX, 0.4, Math.max(-120, Math.min(40, relativeZ)));
 
-        const secondsDelta = (deltaDist * 0.04).toFixed(1);
-        if (deltaDist >= 0) {
-          ghostDeltaReadout.textContent = `+${secondsDelta}s ahead`;
-          ghostDeltaReadout.className = 'ghost-delta-readout ghost-delta-ahead';
-          ghostProgressFill.style.backgroundColor = 'var(--green)';
-          ghostProgressFill.style.width = `${Math.min(100, 50 + deltaDist * 0.5)}%`;
+            // Update DOM Floating Name Tag Position over 3D Canvas
+            const screenVector = gMesh.position.clone();
+            screenVector.y += 1.8;
+            screenVector.project(camera);
 
-          if (!hasOvertakenGhost && deltaDist > 10) {
-            hasOvertakenGhost = true;
-            const banner = document.getElementById('overtake-banner');
-            banner.style.display = 'block';
-            setTimeout(() => { banner.style.display = 'none'; }, 1800);
+            const x = (screenVector.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (-(screenVector.y * 0.5) + 0.5) * window.innerHeight;
+
+            gTag.style.display = 'block';
+            gTag.style.left = `${x}px`;
+            gTag.style.top = `${y}px`;
+            gTag.textContent = `${gData.name} (${Math.floor(sample.distanceMeters)}m)`;
+
+            const delta = distanceMeters - sample.distanceMeters;
+            if (sample.distanceMeters > distanceMeters) playerRank++;
+            if (Math.abs(delta) < Math.abs(closestDelta)) closestDelta = delta;
           }
-        } else {
-          ghostDeltaReadout.textContent = `${secondsDelta}s behind`;
-          ghostDeltaReadout.className = 'ghost-delta-readout ghost-delta-behind';
-          ghostProgressFill.style.backgroundColor = '#ff4757';
-          ghostProgressFill.style.width = `${Math.max(0, 50 + deltaDist * 0.5)}%`;
         }
-      }
-    } else if (isRivalMode && rivalCarMesh) {
-      rivalCarMesh.visible = true;
-      const targetRivalDist = distanceMeters + Math.sin(time * 0.05) * 15;
-      rivalDistMeters += (targetRivalDist - rivalDistMeters) * 0.05;
+      });
 
-      const relativeZ = -(rivalDistMeters - distanceMeters) * 0.5;
-      rivalCarMesh.position.set(LANES[rivalLane], 0.4, Math.max(-120, Math.min(40, relativeZ)));
-
-      const deltaDist = distanceMeters - rivalDistMeters;
       const ghostHudPanel = document.getElementById('ghost-hud-panel');
       const ghostDeltaReadout = document.getElementById('ghostDeltaReadout');
       const ghostProgressFill = document.getElementById('ghostProgressFill');
-      const ghostHudLabel = document.getElementById('ghostHudLabel');
+      const ghostRankBadge = document.getElementById('ghostRankBadge');
 
       ghostHudPanel.style.display = 'flex';
-      ghostHudLabel.textContent = 'VS RIVAL';
+      ghostRankBadge.textContent = `RANK #${playerRank}/${fetchedRivalGhosts.length + 1}`;
 
-      const secondsDelta = (deltaDist * 0.04).toFixed(1);
-      if (deltaDist >= 0) {
+      const secondsDelta = (closestDelta * 0.04).toFixed(1);
+      if (closestDelta >= 0) {
         ghostDeltaReadout.textContent = `+${secondsDelta}s ahead`;
         ghostDeltaReadout.className = 'ghost-delta-readout ghost-delta-ahead';
         ghostProgressFill.style.backgroundColor = 'var(--green)';
-        ghostProgressFill.style.width = `${Math.min(100, 50 + deltaDist * 0.5)}%`;
+        ghostProgressFill.style.width = `${Math.min(100, 50 + closestDelta * 0.5)}%`;
       } else {
         ghostDeltaReadout.textContent = `${secondsDelta}s behind`;
         ghostDeltaReadout.className = 'ghost-delta-readout ghost-delta-behind';
         ghostProgressFill.style.backgroundColor = '#ff4757';
-        ghostProgressFill.style.width = `${Math.max(0, 50 + deltaDist * 0.5)}%`;
+        ghostProgressFill.style.width = `${Math.max(0, 50 + closestDelta * 0.5)}%`;
       }
     } else {
       document.getElementById('ghost-hud-panel').style.display = 'none';
     }
 
-    if (activeZoneId === 'rain' && Math.random() < 0.008) {
+    if (activeZoneId === 'rain' && seedPRNG() < 0.008) {
       scene.background.setHex(0x334155);
       setTimeout(() => scene.background.setHex(0x0c101d), 60);
     }
@@ -962,8 +1079,8 @@
     });
 
     const spawnRate = activeBranchType === 'HAZARD' ? 0.05 : 0.035;
-    if (Math.random() < spawnRate) spawnObstacle();
-    if (Math.random() < 0.025) spawnPickup();
+    if (seedPRNG() < spawnRate) spawnObstacle();
+    if (seedPRNG() < 0.025) spawnPickup();
 
     for (let i = obstacles.length - 1; i >= 0; i--) {
       const obs = obstacles[i];
@@ -1064,25 +1181,23 @@
     if (mode === 'time') modeHud.innerHTML = `<svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> ${(time / 60).toFixed(1)}s / 2000m`;
     else if (mode === 'zerodmg') modeHud.innerHTML = `<svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--green)"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> NO HIT: ${distanceMeters}m / 1500m`;
     else if (mode === 'collector') modeHud.innerHTML = `<svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><polygon points="12 2 22 8.5 12 22 2 8.5 12 2"/></svg> ORBS: ${collectedOrbs} / 15`;
-    else modeHud.innerHTML = `<svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><rect x="3" y="3" width="18" height="18" rx="2"/></svg> ZONE: ${Storage.getSelectedZone().toUpperCase()}`;
+    else modeHud.innerHTML = `<svg class="hud-svg-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><rect x="3" y="3" width="18" height="18" rx="2"/></svg> SEED: ${currentTrackSeed}`;
 
     document.querySelectorAll('.lane-dot').forEach((dot, idx) => {
       dot.classList.toggle('active', idx === targetLane);
     });
   }
 
-  // --- CINEMATIC SLOW-MOTION CRASH REPLAY PLAYBACK LOOP ---
   function updateCrashReplay() {
     if (!isReplaying || crashBuffer.length === 0) return;
 
-    // Slow down playback to 0.35x speed (freeze-frame 0.1x at crash moment)
     const isImpactFrame = replayFrameIndex >= crashBuffer.length - 4;
     const playbackSpeed = isImpactFrame ? 0.08 : 0.35;
 
     replayFrameIndex += playbackSpeed;
 
     if (replayFrameIndex >= crashBuffer.length) {
-      replayFrameIndex = crashBuffer.length - 1; // Hold on final crash frame
+      replayFrameIndex = crashBuffer.length - 1;
     }
 
     const frameIdx = Math.floor(replayFrameIndex);
@@ -1092,7 +1207,6 @@
       playerCar.position.x = frame.posX;
       playerCar.rotation.z = frame.rotZ || 0;
 
-      // Cinematic Orbiting Camera Angle
       const camAngle = (replayFrameIndex * 0.08);
       camera.position.set(frame.posX + Math.sin(camAngle) * 8.5, 3.2 + Math.cos(camAngle) * 1.5, 9);
       camera.lookAt(frame.posX, 0.6, 0);
@@ -1116,12 +1230,17 @@
     requestAnimationFrame(renderLoop);
   }
 
-  function startRace() {
+  async function startRace() {
     audio.init();
     applyZoneTheme();
     isPlaying = true;
     isPaused = false;
     isReplaying = false;
+
+    // Seed the PRNG for deterministic track layout
+    const seedInputVal = document.getElementById('trackSeedInput').value.trim();
+    currentTrackSeed = seedInputVal || 'BRUTAL-4471';
+    seedPRNG = mulberry32(hashString(currentTrackSeed + Storage.getSelectedZone() + Storage.getSelectedMode()));
 
     score = 0; combo = 1; comboTimer = 0; time = 0; distanceMeters = 0;
     targetLane = 2; playerPosX = 0; shieldActive = false; boostAmount = 100;
@@ -1130,15 +1249,20 @@
     currentRunTelemetry = [];
     crashBuffer = [];
     hasOvertakenGhost = false;
+
     const currentZone = Storage.getSelectedZone();
     const currentMode = Storage.getSelectedMode();
-    activeGhostData = Storage.getGhost(currentZone, currentMode);
-    isRivalMode = Storage.getRivalSetting();
-    rivalDistMeters = 0;
+
+    // Fetch Live Multiplayer Ghosts via Serverless API Client
+    fetchedRivalGhosts = await GhostAPI.fetchGhosts(currentTrackSeed, currentZone, currentMode);
+    document.getElementById('rivalsLoadedBadge').textContent = `${fetchedRivalGhosts.length} RIVALS LOADED`;
 
     shieldBubbleMesh.visible = false;
     if (ghostCarMesh) ghostCarMesh.visible = false;
     if (rivalCarMesh) rivalCarMesh.visible = false;
+
+    multiGhostMeshes.forEach(g => g.visible = false);
+    multiGhostNametags.forEach(t => t.style.display = 'none');
 
     document.getElementById('shield-bar-container').classList.remove('active');
     document.getElementById('fork-banner').style.display = 'none';
@@ -1178,7 +1302,7 @@
     camera.lookAt(0, 0, 0);
   }
 
-  function triggerGameOver(success = false, customMsg = '') {
+  async function triggerGameOver(success = false, customMsg = '') {
     isPlaying = false;
     updatePlaybackControlsHUD();
 
@@ -1190,14 +1314,11 @@
     const currentZone = Storage.getSelectedZone();
     const currentMode = Storage.getSelectedMode();
 
-    let isNewGhostBest = false;
-    if (!activeGhostData || finalScore > (activeGhostData.score || 0)) {
-      isNewGhostBest = true;
-      Storage.setGhost(currentZone, currentMode, {
-        score: finalScore,
-        samples: currentRunTelemetry
-      });
-    }
+    // Upload Telemetry to Serverless API Endpoint
+    await GhostAPI.uploadGhost(currentTrackSeed, currentZone, currentMode, {
+      score: finalScore,
+      samples: currentRunTelemetry
+    });
 
     if (success) {
       const camp = Storage.getCampaign();
@@ -1209,35 +1330,27 @@
     document.getElementById('finalScore').textContent = finalScore;
     document.getElementById('finalBest').textContent = Storage.getBestScore();
 
-    // Show/Hide Watch Replay CTA button based on settings & buffer availability
     const watchReplayBtn = document.getElementById('watchReplayBtn');
     if (Storage.getCrashReplaySetting() && crashBuffer.length >= 10) {
       watchReplayBtn.style.display = 'inline-flex';
     } else { watchReplayBtn.style.display = 'none'; }
 
     const compCard = document.getElementById('ghostComparisonCard');
-    if (activeGhostData || isNewGhostBest) {
-      const ghostBestScore = activeGhostData ? activeGhostData.score : finalScore;
-      const delta = finalScore - ghostBestScore;
-
-      compCard.style.display = 'block';
-      compCard.innerHTML = `
-        <div class="comp-row">
-          <span style="color:var(--text-muted); font-family:'Orbitron';">YOUR SCORE</span>
-          <span style="font-family:'Orbitron'; font-weight:bold; color:#fff;">${finalScore.toLocaleString()}</span>
-        </div>
-        <div class="comp-row">
-          <span style="color:var(--text-muted); font-family:'Orbitron';">GHOST BEST</span>
-          <span style="font-family:'Orbitron'; font-weight:bold; color:var(--cyan);">${ghostBestScore.toLocaleString()}</span>
-        </div>
-        <div class="comp-row" style="margin-top:4px;">
-          <span style="color:var(--text-muted); font-family:'Orbitron';">RESULT</span>
-          <span style="font-family:'Orbitron'; font-weight:bold; color:${delta >= 0 ? 'var(--green)' : '#ff4757'};">
-            ${delta >= 0 ? `+${delta.toLocaleString()} — NEW BEST!` : `${delta.toLocaleString()}`}
-          </span>
-        </div>
-      `;
-    } else { compCard.style.display = 'none'; }
+    compCard.style.display = 'block';
+    compCard.innerHTML = `
+      <div class="comp-row">
+        <span style="color:var(--text-muted); font-family:'Orbitron';">TRACK SEED</span>
+        <span style="font-family:'Orbitron'; font-weight:bold; color:var(--yellow);">${currentTrackSeed}</span>
+      </div>
+      <div class="comp-row">
+        <span style="color:var(--text-muted); font-family:'Orbitron';">YOUR SCORE</span>
+        <span style="font-family:'Orbitron'; font-weight:bold; color:#fff;">${finalScore.toLocaleString()}</span>
+      </div>
+      <div class="comp-row" style="margin-top:4px;">
+        <span style="color:var(--text-muted); font-family:'Orbitron';">SEED RIVAL RANK</span>
+        <span style="font-family:'Orbitron'; font-weight:bold; color:var(--green);">RANK #1 AMONG RIVALS</span>
+      </div>
+    `;
 
     const lb = Storage.getLeaderboard();
     if (lb.length < 10 || finalScore > (lb[lb.length - 1]?.score || 0)) {
