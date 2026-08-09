@@ -1,62 +1,62 @@
-/* NEON HIGHWAY — Modular Swappable Zone Engine, SVG Icons, Custom Hazards & Audio Synth */
+/* NEON HIGHWAY — Grounded Realistic 3D Racing Engine, Suspension Physics & PBR Shaders */
 
 (() => {
-  // --- MODULAR ZONE CONFIGURATIONS WITH SVG ICONS ---
+  // --- REALISTIC ZONE CONFIGURATIONS ---
   const ZONE_CONFIGS = {
     district: {
       id: 'district',
-      name: 'Neon District',
+      name: 'City Streets',
       icon: `<svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)"><path d="M3 21h18M5 21V7l6-3v17M11 21V11l8-4v14"/></svg>`,
       difficulty: 'Normal',
       reqScore: 0,
-      fogColor: 0x0c061a,
-      sunColor: 0xff7700,
+      fogColor: 0x121824,
+      sunColor: 0xffaa44,
       hudSkinClass: 'hud-skin-district',
-      desc: 'Downtown cyberpunk streets. Skyscrapers, neon light bridges, and city traffic.',
+      desc: 'Urban avenue lined with building facades, streetlamps, and city traffic.',
       spawnHazards: ['TRAFFIC', 'BARRIER', 'LOW_SIGN'],
-      weatherType: 'NEON_DRIFT',
+      weatherType: 'CITY_LIGHTS',
       ambientFreq: 110
     },
     desert: {
       id: 'desert',
-      name: 'Desert Overpass',
+      name: 'Desert Highway',
       icon: `<svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)"><circle cx="12" cy="12" r="5"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`,
       difficulty: 'Fast',
       reqScore: 2000,
-      fogColor: 0x1e0802,
-      sunColor: 0xffea00,
+      fogColor: 0x3d2817,
+      sunColor: 0xffcc44,
       hudSkinClass: 'hud-skin-desert',
-      desc: 'Sun-scorched highway. Rolling tumbleweeds, high speed, and periodic sandstorms.',
+      desc: 'Sun-lit freeway through rock formations, desert terrain, and roadside signs.',
       spawnHazards: ['TRAFFIC', 'TUMBLEWEED', 'HUNTER'],
-      weatherType: 'SANDSTORM',
+      weatherType: 'HEAT_HAZE',
       ambientFreq: 85
     },
     rain: {
       id: 'rain',
-      name: 'Rain City',
+      name: 'Rain Expressway',
       icon: `<svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="#00aaff"><path d="M16 13a4 4 0 0 0-7.2-2.4A3.5 3.5 0 0 0 4 14a3 3 0 0 0 3 3h10a3 3 0 0 0 2.5-4.7A4 4 0 0 0 16 13zM8 21l-1 2M12 21l-1 2M16 21l-1 2"/></svg>`,
       difficulty: 'Hard',
       reqScore: 6000,
-      fogColor: 0x150020,
-      sunColor: 0xff00aa,
+      fogColor: 0x0f172a,
+      sunColor: 0x88aacc,
       hudSkinClass: 'hud-skin-rain',
-      desc: 'Wet night streets. Persistent rain, hydroplane puddles, and lightning sky flashes.',
+      desc: 'Overcast twilight highway with wet asphalt sheen, puddles, and lightning flashes.',
       spawnHazards: ['TRAFFIC', 'PUDDLE', 'STEALTH_HUNTER'],
       weatherType: 'RAIN',
       ambientFreq: 140
     },
     orbital: {
       id: 'orbital',
-      name: 'Orbital Ring',
-      icon: `<svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="#b700ff"><circle cx="12" cy="12" r="6"/><ellipse cx="12" cy="12" rx="11" ry="4" transform="rotate(-30 12 12)"/></svg>`,
+      name: 'Coastal Mountain Pass',
+      icon: `<svg class="cyber-icon" viewBox="0 0 24 24" fill="none" stroke="#b700ff"><polygon points="12 2 2 22 22 22 12 2"/></svg>`,
       difficulty: 'Extreme',
       reqScore: 12000,
-      fogColor: 0x001525,
-      sunColor: 0x00f3ff,
+      fogColor: 0x181028,
+      sunColor: 0xff66aa,
       hudSkinClass: 'hud-skin-orbital',
-      desc: 'Space station highway. Zero-G floating debris, flickering laser gates, and heavy hunter waves.',
-      spawnHazards: ['ZERO_G_DEBRIS', 'LASER_GATE', 'HUNTER'],
-      weatherType: 'COSMIC_DRIFT',
+      desc: 'Winding cliffside highway with mountain peaks, dusk lighting, and heavy traffic.',
+      spawnHazards: ['CARGO_BOX', 'TRAFFIC_CONE', 'HUNTER'],
+      weatherType: 'DUSK_FOG',
       ambientFreq: 180
     }
   };
@@ -65,11 +65,11 @@
 
   // --- CAR SKINS DEFINITION ---
   const CAR_SKINS = [
-    { id: 'cyber', name: 'Cyber Streak', reqScore: 0, bodyColor: 0x070b14, glowColor: 0x00f3ff, tailColor: 0xff00aa, desc: 'Standard issue high-speed synthwave cruiser.' },
-    { id: 'phantom', name: 'Phantom Neon', reqScore: 2500, bodyColor: 0x140712, glowColor: 0xff00aa, tailColor: 0x00f3ff, desc: 'Unlocked at 2,500 pts. Sleek magenta glow variant.' },
-    { id: 'solar', name: 'Solar Flare', reqScore: 5000, bodyColor: 0x181205, glowColor: 0xffea00, tailColor: 0xff7700, desc: 'Unlocked at 5,000 pts. Radiant yellow nitro chassis.' },
-    { id: 'vaporwave', name: 'Vaporwave Special', reqScore: 10000, bodyColor: 0x0a0518, glowColor: 0x9900ff, tailColor: 0x00f3ff, desc: 'Unlocked at 10,000 pts. Ultra-violet grid racer.' },
-    { id: 'titan', name: 'Titan Dark', reqScore: 20000, bodyColor: 0x05140d, glowColor: 0x00ffaa, tailColor: 0xffea00, desc: 'Unlocked at 20,000 pts. Emerald energy power vehicle.' }
+    { id: 'cyber', name: 'GT Sport Silver', reqScore: 0, bodyColor: 0x222836, specularColor: 0x00e5ff, desc: 'High-performance metallic silver sports coupe.' },
+    { id: 'phantom', name: 'Crimson Velocity', reqScore: 2500, bodyColor: 0x88051a, specularColor: 0xff0044, desc: 'Unlocked at 2,500 pts. Deep red metallic gloss.' },
+    { id: 'solar', name: 'Golden Apex', reqScore: 5000, bodyColor: 0x997700, specularColor: 0xffc800, desc: 'Unlocked at 5,000 pts. Sun-bright amber finish.' },
+    { id: 'vaporwave', name: 'Midnight Violet', reqScore: 10000, bodyColor: 0x330066, specularColor: 0x9900ff, desc: 'Unlocked at 10,000 pts. Ultra-violet pearl coat.' },
+    { id: 'titan', name: 'Emerald Stealth', reqScore: 20000, bodyColor: 0x05331a, specularColor: 0x00e676, desc: 'Unlocked at 20,000 pts. Emerald carbon weave.' }
   ];
 
   // --- LOCAL STORAGE MANAGER ---
@@ -142,7 +142,7 @@
 
     updateEngine(speedRatio) {
       if (!this.ctx || !this.engineOsc || this.muted) return;
-      const targetFreq = 50 + speedRatio * 180;
+      const targetFreq = 55 + speedRatio * 190;
       this.engineOsc.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.1);
     }
 
@@ -203,7 +203,10 @@
 
   let scene, camera, renderer;
   let roadGroup, sunMesh, sceneryGroup;
-  let playerCar, playerBodyMesh, playerCabinMesh, playerTailMesh, shieldBubbleMesh;
+  let playerCar, playerBodyMesh, playerGlassMesh, playerTaillightMat, shieldBubbleMesh;
+  let frontLeftWheel, frontRightWheel, rearLeftWheel, rearRightWheel;
+  let headlightLeftLight, headlightRightLight;
+
   let obstacles = [];
   let pickups = [];
   let roadSegments = [];
@@ -334,22 +337,24 @@
   function initThree() {
     const container = document.getElementById('canvas-container');
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x04040a);
-    scene.fog = new THREE.FogExp2(0x0c061a, 0.0055);
+    scene.background = new THREE.Color(0x0c101d);
+    scene.fog = new THREE.FogExp2(0x121824, 0.005);
 
     camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 800);
-    camera.position.set(0, 4.2, 12);
+    camera.position.set(0, 3.8, 11);
 
-    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
     container.appendChild(renderer.domElement);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    const ambientLight = new THREE.AmbientLight(0xddeeff, 0.7);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0x00f3ff, 0.8);
-    dirLight.position.set(20, 40, 20);
+    const dirLight = new THREE.DirectionalLight(0xfffaed, 1.2);
+    dirLight.position.set(40, 80, 40);
     scene.add(dirLight);
 
     buildEnvironment();
@@ -372,22 +377,17 @@
   }
 
   function buildEnvironment() {
-    const sunGeom = new THREE.CircleGeometry(45, 32);
-    const sunMat = new THREE.MeshBasicMaterial({ color: 0xff7700, side: THREE.DoubleSide });
+    const sunGeom = new THREE.CircleGeometry(40, 32);
+    const sunMat = new THREE.MeshBasicMaterial({ color: 0xffaa44, side: THREE.DoubleSide });
     sunMesh = new THREE.Mesh(sunGeom, sunMat);
-    sunMesh.position.set(0, 20, -350);
+    sunMesh.position.set(0, 25, -350);
     scene.add(sunMesh);
-
-    const gridHelper = new THREE.GridHelper(1000, 80, 0xff00aa, 0x00f3ff);
-    gridHelper.position.y = -0.5;
-    gridHelper.position.z = -200;
-    scene.add(gridHelper);
 
     sceneryGroup = new THREE.Group();
     scene.add(sceneryGroup);
   }
 
-  // --- DYNAMIC ZONE THEME & ENVIRONMENT SWAPPER ---
+  // --- DYNAMIC REALISTIC SCENERY & LIGHTING SWAPPER ---
   function applyZoneTheme() {
     const activeZoneId = Storage.getSelectedZone();
     const cfg = ZONE_CONFIGS[activeZoneId] || ZONE_CONFIGS.district;
@@ -405,60 +405,98 @@
     while (sceneryGroup.children.length > 0) sceneryGroup.remove(sceneryGroup.children[0]);
 
     if (cfg.id === 'district') {
+      // City Building Facades & Streetlamps
       for (let i = -10; i <= 10; i++) {
         if (Math.abs(i) < 2) continue;
-        const bGeom = new THREE.BoxGeometry(rand(14, 22), rand(40, 90), rand(14, 22));
-        const bMat = new THREE.MeshLambertMaterial({ color: 0x090616, flatShading: true });
+        const bGeom = new THREE.BoxGeometry(rand(16, 26), rand(35, 80), rand(16, 26));
+        const bMat = new THREE.MeshStandardMaterial({ color: 0x1a202c, roughness: 0.7, metalness: 0.3 });
         const b = new THREE.Mesh(bGeom, bMat);
         b.position.set(i * 32, 20, -340 + rand(-20, 20));
         sceneryGroup.add(b);
+
+        // Streetlamp Posts
+        const postGeom = new THREE.CylinderGeometry(0.2, 0.2, 8);
+        const postMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8 });
+        const post = new THREE.Mesh(postGeom, postMat);
+        post.position.set(i > 0 ? 12 : -12, 4, -i * 30);
+        sceneryGroup.add(post);
       }
     } else if (cfg.id === 'desert') {
+      // Desert Canyon Rock Formations
       for (let i = -10; i <= 10; i++) {
         if (Math.abs(i) < 2) continue;
-        const rGeom = new THREE.DodecahedronGeometry(rand(12, 24));
-        const rMat = new THREE.MeshLambertMaterial({ color: 0x1c0b04, flatShading: true });
+        const rGeom = new THREE.DodecahedronGeometry(rand(14, 28));
+        const rMat = new THREE.MeshStandardMaterial({ color: 0x5a3a22, roughness: 0.9, metalness: 0.1 });
         const r = new THREE.Mesh(rGeom, rMat);
         r.position.set(i * 35, 10, -340 + rand(-20, 20));
         sceneryGroup.add(r);
       }
     } else if (cfg.id === 'rain') {
+      // Rain City Wet Highway Towers
       for (let i = -10; i <= 10; i++) {
         if (Math.abs(i) < 2) continue;
-        const rGeom = new THREE.BoxGeometry(rand(12, 18), rand(35, 75), rand(12, 18));
-        const rMat = new THREE.MeshLambertMaterial({ color: 0x040e24, flatShading: true });
+        const rGeom = new THREE.BoxGeometry(rand(14, 22), rand(30, 70), rand(14, 22));
+        const rMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.2, metalness: 0.8 });
         const r = new THREE.Mesh(rGeom, rMat);
         r.position.set(i * 30, 15, -340 + rand(-20, 20));
         sceneryGroup.add(r);
       }
     } else if (cfg.id === 'orbital') {
-      const ringGeom = new THREE.TorusGeometry(120, 6, 16, 64);
-      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true });
-      const ring = new THREE.Mesh(ringGeom, ringMat);
-      ring.position.set(0, 40, -300);
-      ring.rotation.x = Math.PI / 6;
-      sceneryGroup.add(ring);
+      // Coastal Mountain Peaks
+      for (let i = -10; i <= 10; i++) {
+        if (Math.abs(i) < 2) continue;
+        const mGeom = new THREE.ConeGeometry(rand(20, 35), rand(40, 75), 5);
+        const mMat = new THREE.MeshStandardMaterial({ color: 0x1e1b2e, roughness: 0.8 });
+        const m = new THREE.Mesh(mGeom, mMat);
+        m.position.set(i * 35, 15, -340 + rand(-20, 20));
+        sceneryGroup.add(m);
+      }
     }
   }
 
+  // --- GROUNDED REALISTIC ASPHALT ROAD & GUARDRAILS ---
   function buildRoad() {
     roadGroup = new THREE.Group();
     const numSegments = ROAD_LENGTH / SEGMENT_LENGTH;
+
+    const roadMat = new THREE.MeshStandardMaterial({
+      color: 0x1e2430,
+      roughness: 0.7,
+      metalness: 0.2
+    });
+
+    const lineMat = new THREE.MeshBasicMaterial({ color: 0xe2e8f0 });
+    const shoulderMat = new THREE.MeshBasicMaterial({ color: 0xfcb316 });
+    const railMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.3 });
+
     for (let i = 0; i < numSegments; i++) {
       const z = -i * SEGMENT_LENGTH;
       const segGeom = new THREE.PlaneGeometry(ROAD_WIDTH, SEGMENT_LENGTH);
-      const segMat = new THREE.MeshStandardMaterial({
-        color: (i % 2 === 0) ? 0x0a0c16 : 0x080912,
-        roughness: 0.4, metalness: 0.6
-      });
-      const seg = new THREE.Mesh(segGeom, segMat);
+      const seg = new THREE.Mesh(segGeom, roadMat);
       seg.rotation.x = -Math.PI / 2;
       seg.position.set(0, 0, z);
 
+      // Yellow Shoulder Lines
+      [-ROAD_WIDTH/2 + 0.4, ROAD_WIDTH/2 - 0.4].forEach(xPos => {
+        const sLineGeom = new THREE.PlaneGeometry(0.3, SEGMENT_LENGTH);
+        const sLine = new THREE.Mesh(sLineGeom, shoulderMat);
+        sLine.rotation.x = -Math.PI / 2;
+        sLine.position.set(xPos, 0.02, 0);
+        seg.add(sLine);
+      });
+
+      // Metallic Side Guardrails
+      [-ROAD_WIDTH/2 - 0.2, ROAD_WIDTH/2 + 0.2].forEach(xPos => {
+        const railGeom = new THREE.BoxGeometry(0.3, 0.8, SEGMENT_LENGTH);
+        const rail = new THREE.Mesh(railGeom, railMat);
+        rail.position.set(xPos, 0.4, 0);
+        seg.add(rail);
+      });
+
+      // White Lane Markings
       LANES.forEach((xPos, idx) => {
         if (idx === 0 || idx === LANES.length - 1) return;
-        const lineGeom = new THREE.PlaneGeometry(0.2, SEGMENT_LENGTH * 0.5);
-        const lineMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff });
+        const lineGeom = new THREE.PlaneGeometry(0.25, SEGMENT_LENGTH * 0.45);
         const line = new THREE.Mesh(lineGeom, lineMat);
         line.rotation.x = -Math.PI / 2;
         line.position.set(xPos, 0.02, 0);
@@ -471,37 +509,95 @@
     scene.add(roadGroup);
   }
 
+  // --- DETAILED REALISTIC SPORTS COUPE HERO CAR ---
   function buildPlayerCar() {
     playerCar = new THREE.Group();
-    const bodyGeom = new THREE.BoxGeometry(2.2, 0.7, 4.2);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x070b14, roughness: 0.2, metalness: 0.8 });
-    playerBodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
-    playerBodyMesh.position.y = 0.5;
-    playerCar.add(playerBodyMesh);
 
-    const cabinGeom = new THREE.BoxGeometry(1.7, 0.55, 2.0);
-    const cabinMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true });
-    playerCabinMesh = new THREE.Mesh(cabinGeom, cabinMat);
-    playerCabinMesh.position.set(0, 1.0, -0.3);
-    playerCar.add(playerCabinMesh);
-
-    const tailGeom = new THREE.BoxGeometry(2.0, 0.15, 0.1);
-    const tailMat = new THREE.MeshBasicMaterial({ color: 0xff00aa });
-    playerTailMesh = new THREE.Mesh(tailGeom, tailMat);
-    playerTailMesh.position.set(0, 0.65, 2.1);
-    playerCar.add(playerTailMesh);
-
-    const wheelGeom = new THREE.CylinderGeometry(0.4, 0.4, 0.3, 16);
-    const wheelMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true });
-    [[-1.1, 1.3], [1.1, 1.3], [-1.1, -1.3], [1.1, -1.3]].forEach(([wx, wz]) => {
-      const wheel = new THREE.Mesh(wheelGeom, wheelMat);
-      wheel.rotation.z = Math.PI / 2;
-      wheel.position.set(wx, 0.4, wz);
-      playerCar.add(wheel);
+    // Metallic Body Chassis Shell
+    const bodyMat = new THREE.MeshStandardMaterial({
+      color: 0x222836,
+      roughness: 0.25,
+      metalness: 0.85
     });
 
+    const bodyGeom = new THREE.BoxGeometry(2.3, 0.65, 4.4);
+    playerBodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
+    playerBodyMesh.position.y = 0.55;
+    playerCar.add(playerBodyMesh);
+
+    // Aerodynamic Roof Cabin & Tinted Windows
+    const glassMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      roughness: 0.1,
+      metalness: 0.9,
+      transparent: true,
+      opacity: 0.85
+    });
+    playerGlassMesh = glassMat;
+
+    const cabinGeom = new THREE.BoxGeometry(1.8, 0.55, 2.2);
+    const cabinMesh = new THREE.Mesh(cabinGeom, glassMat);
+    cabinMesh.position.set(0, 1.1, -0.3);
+    playerCar.add(cabinMesh);
+
+    // Front Grille & Headlight Assemblies
+    const grilleGeom = new THREE.BoxGeometry(2.0, 0.25, 0.1);
+    const grilleMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+    const grille = new THREE.Mesh(grilleGeom, grilleMat);
+    grille.position.set(0, 0.5, -2.25);
+    playerCar.add(grille);
+
+    // LED Headlight Meshes & SpotLight Beams
+    const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+    [-0.85, 0.85].forEach(xPos => {
+      const hlGeom = new THREE.BoxGeometry(0.35, 0.15, 0.1);
+      const hl = new THREE.Mesh(hlGeom, headlightMat);
+      hl.position.set(xPos, 0.55, -2.23);
+      playerCar.add(hl);
+    });
+
+    headlightLeftLight = new THREE.SpotLight(0xffffff, 2, 40, Math.PI / 6, 0.5);
+    headlightLeftLight.position.set(-0.85, 0.55, -2.2);
+    headlightLeftLight.target.position.set(-0.85, 0, -20);
+    playerCar.add(headlightLeftLight);
+    playerCar.add(headlightLeftLight.target);
+
+    headlightRightLight = new THREE.SpotLight(0xffffff, 2, 40, Math.PI / 6, 0.5);
+    headlightRightLight.position.set(0.85, 0.55, -2.2);
+    headlightRightLight.target.position.set(0.85, 0, -20);
+    playerCar.add(headlightRightLight);
+    playerCar.add(headlightRightLight.target);
+
+    // Rear Taillight Assemblies & Brake Light Material
+    playerTaillightMat = new THREE.MeshBasicMaterial({ color: 0xcc0000 });
+    const tailGeom = new THREE.BoxGeometry(2.0, 0.15, 0.1);
+    const taillights = new THREE.Mesh(tailGeom, playerTaillightMat);
+    taillights.position.set(0, 0.65, 2.23);
+    playerCar.add(taillights);
+
+    // Detailed 4 Wheel Assemblies (Rubber Tires & Alloy Rims)
+    const tireMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.9 });
+    const rimMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9, roughness: 0.2 });
+
+    function createWheel() {
+      const wGroup = new THREE.Group();
+      const tire = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.35, 18), tireMat);
+      tire.rotation.z = Math.PI / 2;
+      wGroup.add(tire);
+      const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.37, 12), rimMat);
+      rim.rotation.z = Math.PI / 2;
+      wGroup.add(rim);
+      return wGroup;
+    }
+
+    frontLeftWheel = createWheel(); frontLeftWheel.position.set(-1.15, 0.42, -1.4); playerCar.add(frontLeftWheel);
+    frontRightWheel = createWheel(); frontRightWheel.position.set(1.15, 0.42, -1.4); playerCar.add(frontRightWheel);
+    rearLeftWheel = createWheel(); rearLeftWheel.position.set(-1.15, 0.42, 1.4); playerCar.add(rearLeftWheel);
+    rearRightWheel = createWheel(); rearRightWheel.position.set(1.15, 0.42, 1.4); playerCar.add(rearRightWheel);
+
+    // Shield Bubble Mesh
     const shieldGeom = new THREE.SphereGeometry(2.8, 16, 16);
-    const shieldMat = new THREE.MeshBasicMaterial({ color: 0xff00aa, wireframe: true, transparent: true, opacity: 0.6 });
+    const shieldMat = new THREE.MeshBasicMaterial({ color: 0x00e5ff, wireframe: true, transparent: true, opacity: 0.5 });
     shieldBubbleMesh = new THREE.Mesh(shieldGeom, shieldMat);
     shieldBubbleMesh.visible = false;
     playerCar.add(shieldBubbleMesh);
@@ -515,10 +611,9 @@
     const activeId = Storage.getSelectedCar();
     const skin = CAR_SKINS.find(s => s.id === activeId) || CAR_SKINS[0];
     if (playerBodyMesh) playerBodyMesh.material.color.setHex(skin.bodyColor);
-    if (playerCabinMesh) playerCabinMesh.material.color.setHex(skin.glowColor);
-    if (playerTailMesh) playerTailMesh.material.color.setHex(skin.tailColor);
   }
 
+  // --- REALISTIC TRAFFIC & OBSTACLE SPAWNER ---
   function spawnObstacle() {
     const laneIdx = Math.floor(rand(0, LANES.length));
     const x = LANES[laneIdx];
@@ -533,30 +628,30 @@
 
     let mesh;
     if (cfg.id === 'desert' && Math.random() < 0.3) {
+      // Desert Tumbleweed
       const tGeom = new THREE.DodecahedronGeometry(1.2);
-      const tMat = new THREE.MeshBasicMaterial({ color: 0xffea00, wireframe: true });
+      const tMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.9 });
       mesh = new THREE.Mesh(tGeom, tMat);
     } else if (cfg.id === 'rain' && Math.random() < 0.25) {
+      // Hydroplane Puddle
       const pGeom = new THREE.CircleGeometry(2.2, 16);
-      const pMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, side: THREE.DoubleSide });
+      const pMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.1, metalness: 0.9, side: THREE.DoubleSide });
       mesh = new THREE.Mesh(pGeom, pMat);
       mesh.rotation.x = -Math.PI / 2;
-    } else if (cfg.id === 'orbital' && Math.random() < 0.3) {
-      const dGeom = new THREE.IcosahedronGeometry(1.4);
-      const dMat = new THREE.MeshBasicMaterial({ color: 0xb700ff, wireframe: true });
-      mesh = new THREE.Mesh(dGeom, dMat);
-      mesh.position.y = 1.8;
     } else if (isHunter) {
-      const hGeom = new THREE.BoxGeometry(2.0, 0.8, 3.8);
-      const hMat = new THREE.MeshBasicMaterial({ color: 0xff7700, wireframe: true });
+      // Aggressive Hunter Sports Car (Red Body + Strobe Lights)
+      const hGeom = new THREE.BoxGeometry(2.2, 0.8, 4.2);
+      const hMat = new THREE.MeshStandardMaterial({ color: 0x990000, roughness: 0.3, metalness: 0.8 });
       mesh = new THREE.Mesh(hGeom, hMat);
     } else if (isDestructible) {
-      const dGeom = new THREE.BoxGeometry(2.6, 1.4, 0.8);
-      const dMat = new THREE.MeshBasicMaterial({ color: 0xffea00, wireframe: true });
+      // Wooden Cargo Box / Traffic Obstacle
+      const dGeom = new THREE.BoxGeometry(2.2, 1.4, 1.4);
+      const dMat = new THREE.MeshStandardMaterial({ color: 0xa16207, roughness: 0.8 });
       mesh = new THREE.Mesh(dGeom, dMat);
     } else {
-      const rGeom = new THREE.BoxGeometry(2.2, 0.9, 3.6);
-      const rMat = new THREE.MeshStandardMaterial({ color: 0xff0044, roughness: 0.3, metalness: 0.7 });
+      // Realistic City Traffic Car (Sedan)
+      const rGeom = new THREE.BoxGeometry(2.2, 0.8, 4.2);
+      const rMat = new THREE.MeshStandardMaterial({ color: rand(0, 1) > 0.5 ? 0x334155 : 0x475569, roughness: 0.3, metalness: 0.7 });
       mesh = new THREE.Mesh(rGeom, rMat);
     }
 
@@ -573,12 +668,12 @@
     const z = -ROAD_LENGTH + 50;
 
     const roll = Math.random();
-    let type = 'ORB', color = 0x00f3ff, geom;
-    if (roll < 0.7) { type = 'ORB'; color = 0x00f3ff; geom = new THREE.OctahedronGeometry(0.7); }
-    else if (roll < 0.85) { type = 'SHIELD'; color = 0xff00aa; geom = new THREE.TorusGeometry(0.6, 0.2, 8, 16); }
-    else { type = 'BOMB'; color = 0xffea00; geom = new THREE.IcosahedronGeometry(0.7); }
+    let type = 'ORB', color = 0x00e5ff, geom;
+    if (roll < 0.7) { type = 'ORB'; color = 0x00e5ff; geom = new THREE.OctahedronGeometry(0.7); }
+    else if (roll < 0.85) { type = 'SHIELD'; color = 0xff007f; geom = new THREE.TorusGeometry(0.6, 0.2, 8, 16); }
+    else { type = 'BOMB'; color = 0xffc800; geom = new THREE.IcosahedronGeometry(0.7); }
 
-    const mat = new THREE.MeshBasicMaterial({ color, wireframe: true });
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.2, metalness: 0.8 });
     const mesh = new THREE.Mesh(geom, mat);
     mesh.position.set(x, 1.2, z);
     scene.add(mesh);
@@ -621,8 +716,8 @@
     const activeZoneId = Storage.getSelectedZone();
 
     if (activeZoneId === 'rain' && Math.random() < 0.005) {
-      scene.background.setHex(0x354060);
-      setTimeout(() => scene.background.setHex(0x04040a), 60);
+      scene.background.setHex(0x334155);
+      setTimeout(() => scene.background.setHex(0x0c101d), 60);
     }
 
     if (time % 1600 === 0) {
@@ -650,13 +745,37 @@
     curveOffset = Math.sin(time * 0.015) * (activeBranchType === 'HAZARD' ? 14 : 8);
     sunMesh.position.x = curveOffset * 1.5;
 
+    // --- REALISTIC VEHICLE STEERING & SUSPENSION PHYSICS ---
     const targetX = LANES[targetLane];
-    playerPosX += (targetX - playerPosX) * 0.2;
+    const steerDelta = targetX - playerPosX;
+
+    playerPosX += steerDelta * 0.2;
     playerCar.position.x = playerPosX;
 
-    const steerDelta = targetX - playerPosX;
-    playerCar.rotation.z = -steerDelta * 0.12;
-    playerCar.rotation.y = -steerDelta * 0.05;
+    // Body Roll / Lean & Steering Wheel Angle
+    playerCar.rotation.z = -steerDelta * 0.18;
+    playerCar.rotation.y = -steerDelta * 0.08;
+
+    // Front Wheel Pivot Angle on Lane Shift
+    const wheelTurnAngle = steerDelta * 0.4;
+    if (frontLeftWheel) frontLeftWheel.rotation.y = wheelTurnAngle;
+    if (frontRightWheel) frontRightWheel.rotation.y = wheelTurnAngle;
+
+    // Wheel Rotation with Speed
+    const wheelSpin = (currentSpeed * 0.08);
+    if (frontLeftWheel) frontLeftWheel.children[0].rotation.x += wheelSpin;
+    if (frontRightWheel) frontRightWheel.children[0].rotation.x += wheelSpin;
+    if (rearLeftWheel) rearLeftWheel.children[0].rotation.x += wheelSpin;
+    if (rearRightWheel) rearRightWheel.children[0].rotation.x += wheelSpin;
+
+    // Dynamic Taillight & Brake Light Intensity
+    if (playerTaillightMat) {
+      if (steerDelta !== 0 || !isBoosting) {
+        playerTaillightMat.color.setHex(0xff0000); // Bright Brake Red
+      } else {
+        playerTaillightMat.color.setHex(0x660000); // Dim Taillight Red
+      }
+    }
 
     const targetFov = isBoosting ? 75 : 60;
     camera.fov += (targetFov - camera.fov) * 0.1;
@@ -664,9 +783,9 @@
 
     if (cameraShake > 0 && cfg.shake) {
       camera.position.x = rand(-cameraShake, cameraShake);
-      camera.position.y = 4.2 + rand(-cameraShake, cameraShake);
+      camera.position.y = 3.8 + rand(-cameraShake, cameraShake);
       cameraShake *= 0.85;
-    } else { camera.position.x = 0; camera.position.y = 4.2; }
+    } else { camera.position.x = 0; camera.position.y = 3.8; }
 
     const scrollDelta = currentSpeed * 0.05;
     roadSegments.forEach(seg => {
@@ -938,7 +1057,7 @@
       return `
         <div class="car-card ${isSelected ? 'selected' : ''} ${!isUnlocked ? 'locked' : ''}">
           <div class="car-preview-box">
-            <div style="width:50px; height:20px; background:#${skin.bodyColor.toString(16).padStart(6,'0')}; border:2px solid #${skin.glowColor.toString(16).padStart(6,'0')}; border-radius:4px; box-shadow:0 0 15px #${skin.glowColor.toString(16).padStart(6,'0')};"></div>
+            <div style="width:50px; height:20px; background:#${skin.bodyColor.toString(16).padStart(6,'0')}; border:2px solid #${skin.specularColor.toString(16).padStart(6,'0')}; border-radius:4px; box-shadow:0 0 15px #${skin.specularColor.toString(16).padStart(6,'0')};"></div>
           </div>
           <div class="car-name">${skin.name}</div>
           <div class="car-condition">${isUnlocked ? 'STATUS: UNLOCKED' : `REQUIRES: ${skin.reqScore.toLocaleString()} PTS`}</div>
