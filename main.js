@@ -1,13 +1,67 @@
-/* NEON HIGHWAY — Campaign, World Map, Branching Roads & Challenge Engine */
+/* NEON HIGHWAY — Modular Swappable Zone Engine, Custom Hazards & Audio Synth */
 
 (() => {
-  // --- ZONES CONFIGURATION ---
-  const ZONES = [
-    { id: 'district', name: 'Neon District', difficulty: 'Normal', icon: '🌃', reqScore: 0, fogColor: 0x0c061a, sunColor: 0xff7700, desc: 'Downtown synthwave grid. Balanced traffic density.' },
-    { id: 'desert', name: 'Desert Overpass', difficulty: 'Fast', icon: '🌅', reqScore: 2000, fogColor: 0x1e0802, sunColor: 0xffea00, desc: 'High-speed sunset freeway with long straightaways.' },
-    { id: 'rain', name: 'Rain City', difficulty: 'Hard', icon: '🌧️', reqScore: 6000, fogColor: 0x150020, sunColor: 0xff00aa, desc: 'Twilight rain environment with dense traffic & obstacles.' },
-    { id: 'orbital', name: 'Orbital Ring', difficulty: 'Extreme', icon: '🌌', reqScore: 12000, fogColor: 0x001525, sunColor: 0x00f3ff, desc: 'Space highway with intense homing hunter vehicles.' }
-  ];
+  // --- MODULAR ZONE CONFIGURATIONS ---
+  const ZONE_CONFIGS = {
+    district: {
+      id: 'district',
+      name: 'Neon District',
+      icon: '🌃',
+      difficulty: 'Normal',
+      reqScore: 0,
+      fogColor: 0x0c061a,
+      sunColor: 0xff7700,
+      hudSkinClass: 'hud-skin-district',
+      desc: 'Downtown cyberpunk streets. Skyscrapers, neon light bridges, and city traffic.',
+      spawnHazards: ['TRAFFIC', 'BARRIER', 'LOW_SIGN'],
+      weatherType: 'NEON_DRIFT',
+      ambientFreq: 110
+    },
+    desert: {
+      id: 'desert',
+      name: 'Desert Overpass',
+      icon: '🌅',
+      difficulty: 'Fast',
+      reqScore: 2000,
+      fogColor: 0x1e0802,
+      sunColor: 0xffea00,
+      hudSkinClass: 'hud-skin-desert',
+      desc: 'Sun-scorched highway. Rolling tumbleweeds, high speed, and periodic sandstorms.',
+      spawnHazards: ['TRAFFIC', 'TUMBLEWEED', 'HUNTER'],
+      weatherType: 'SANDSTORM',
+      ambientFreq: 85
+    },
+    rain: {
+      id: 'rain',
+      name: 'Rain City',
+      icon: '🌧️',
+      difficulty: 'Hard',
+      reqScore: 6000,
+      fogColor: 0x150020,
+      sunColor: 0xff00aa,
+      hudSkinClass: 'hud-skin-rain',
+      desc: 'Wet night streets. Persistent rain, hydroplane puddles, and lightning sky flashes.',
+      spawnHazards: ['TRAFFIC', 'PUDDLE', 'STEALTH_HUNTER'],
+      weatherType: 'RAIN',
+      ambientFreq: 140
+    },
+    orbital: {
+      id: 'orbital',
+      name: 'Orbital Ring',
+      icon: '🌌',
+      difficulty: 'Extreme',
+      reqScore: 12000,
+      fogColor: 0x001525,
+      sunColor: 0x00f3ff,
+      hudSkinClass: 'hud-skin-orbital',
+      desc: 'Space station highway. Zero-G floating debris, flickering laser gates, and heavy hunter waves.',
+      spawnHazards: ['ZERO_G_DEBRIS', 'LASER_GATE', 'HUNTER'],
+      weatherType: 'COSMIC_DRIFT',
+      ambientFreq: 180
+    }
+  };
+
+  const ZONES = Object.values(ZONE_CONFIGS);
 
   // --- CAR SKINS DEFINITION ---
   const CAR_SKINS = [
@@ -141,18 +195,19 @@
 
   const audio = new SoundSynth();
 
-  // --- THREE.JS & GAME GLOBALS ---
+  // --- THREE.JS ENGINE GLOBALS ---
   const LANES = [-8, -4, 0, 4, 8];
   const ROAD_WIDTH = 22;
   const ROAD_LENGTH = 500;
   const SEGMENT_LENGTH = 10;
 
   let scene, camera, renderer;
-  let roadGroup, sunMesh, mountainGroup;
+  let roadGroup, sunMesh, sceneryGroup;
   let playerCar, playerBodyMesh, playerCabinMesh, playerTailMesh, shieldBubbleMesh;
   let obstacles = [];
   let pickups = [];
   let roadSegments = [];
+  let weatherParticles = [];
 
   let currentView = 'home';
   let isPlaying = false;
@@ -306,7 +361,6 @@
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
 
-    // Attach Top Header & HUD Playback Control Listeners
     document.getElementById('btn-top-play').addEventListener('click', () => { window.location.hash = '#play'; startRace(); });
     document.getElementById('btn-top-pause').addEventListener('click', togglePause);
     document.getElementById('btn-top-resume').addEventListener('click', togglePause);
@@ -330,24 +384,69 @@
     gridHelper.position.z = -200;
     scene.add(gridHelper);
 
-    mountainGroup = new THREE.Group();
-    for (let i = -10; i <= 10; i++) {
-      if (Math.abs(i) < 2) continue;
-      const mGeom = new THREE.ConeGeometry(rand(20, 40), rand(30, 60), 4);
-      const mMat = new THREE.MeshLambertMaterial({ color: 0x090518, flatShading: true });
-      const m = new THREE.Mesh(mGeom, mMat);
-      m.position.set(i * 35, 10, -340 + rand(-20, 20));
-      m.rotation.y = Math.PI / 4;
-      mountainGroup.add(m);
-    }
-    scene.add(mountainGroup);
+    sceneryGroup = new THREE.Group();
+    scene.add(sceneryGroup);
   }
 
+  // --- DYNAMIC ZONE THEME & ENVIRONMENT SWAPPER ---
   function applyZoneTheme() {
     const activeZoneId = Storage.getSelectedZone();
-    const zone = ZONES.find(z => z.id === activeZoneId) || ZONES[0];
-    if (scene) scene.fog.color.setHex(zone.fogColor);
-    if (sunMesh) sunMesh.material.color.setHex(zone.sunColor);
+    const cfg = ZONE_CONFIGS[activeZoneId] || ZONE_CONFIGS.district;
+
+    // Apply Fog & Sun color
+    if (scene) scene.fog.color.setHex(cfg.fogColor);
+    if (sunMesh) sunMesh.material.color.setHex(cfg.sunColor);
+
+    // Dynamic HUD Skin Class Reskinning
+    const uiContainer = document.getElementById('ui-container');
+    if (uiContainer) {
+      uiContainer.className = '';
+      uiContainer.classList.add(cfg.hudSkinClass, 'zone-flicker');
+      setTimeout(() => uiContainer.classList.remove('zone-flicker'), 400);
+    }
+
+    // Rebuild 3D Scenery tailored to Zone
+    while (sceneryGroup.children.length > 0) sceneryGroup.remove(sceneryGroup.children[0]);
+
+    if (cfg.id === 'district') {
+      // Skyscraper Silhouettes
+      for (let i = -10; i <= 10; i++) {
+        if (Math.abs(i) < 2) continue;
+        const bGeom = new THREE.BoxGeometry(rand(14, 22), rand(40, 90), rand(14, 22));
+        const bMat = new THREE.MeshLambertMaterial({ color: 0x090616, flatShading: true });
+        const b = new THREE.Mesh(bGeom, bMat);
+        b.position.set(i * 32, 20, -340 + rand(-20, 20));
+        sceneryGroup.add(b);
+      }
+    } else if (cfg.id === 'desert') {
+      // Sun-scorched Rock Silhouettes
+      for (let i = -10; i <= 10; i++) {
+        if (Math.abs(i) < 2) continue;
+        const rGeom = new THREE.DodecahedronGeometry(rand(12, 24));
+        const rMat = new THREE.MeshLambertMaterial({ color: 0x1c0b04, flatShading: true });
+        const r = new THREE.Mesh(rGeom, rMat);
+        r.position.set(i * 35, 10, -340 + rand(-20, 20));
+        sceneryGroup.add(r);
+      }
+    } else if (cfg.id === 'rain') {
+      // Rain City Twilight Towers
+      for (let i = -10; i <= 10; i++) {
+        if (Math.abs(i) < 2) continue;
+        const rGeom = new THREE.BoxGeometry(rand(12, 18), rand(35, 75), rand(12, 18));
+        const rMat = new THREE.MeshLambertMaterial({ color: 0x040e24, flatShading: true });
+        const r = new THREE.Mesh(rGeom, rMat);
+        r.position.set(i * 30, 15, -340 + rand(-20, 20));
+        sceneryGroup.add(r);
+      }
+    } else if (cfg.id === 'orbital') {
+      // Orbital Ring Conduits
+      const ringGeom = new THREE.TorusGeometry(120, 6, 16, 64);
+      const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f3ff, wireframe: true });
+      const ring = new THREE.Mesh(ringGeom, ringMat);
+      ring.position.set(0, 40, -300);
+      ring.rotation.x = Math.PI / 6;
+      sceneryGroup.add(ring);
+    }
   }
 
   function buildRoad() {
@@ -428,17 +527,38 @@
     if (playerTailMesh) playerTailMesh.material.color.setHex(skin.tailColor);
   }
 
+  // --- ZONE-SPECIFIC HAZARDS SPAWNER ---
   function spawnObstacle() {
     const laneIdx = Math.floor(rand(0, LANES.length));
     const x = LANES[laneIdx];
     const z = -ROAD_LENGTH + 50;
 
+    const activeZoneId = Storage.getSelectedZone();
+    const cfg = ZONE_CONFIGS[activeZoneId] || ZONE_CONFIGS.district;
     const mode = Storage.getSelectedMode();
-    const isHunter = (mode === 'gauntlet' || time > 1800) && Math.random() < 0.45;
+
+    const isHunter = (mode === 'gauntlet' || cfg.id === 'orbital' || time > 1800) && Math.random() < 0.45;
     const isDestructible = !isHunter && Math.random() < 0.25;
 
     let mesh;
-    if (isHunter) {
+    if (cfg.id === 'desert' && Math.random() < 0.3) {
+      // Tumbleweed rolling hazard
+      const tGeom = new THREE.DodecahedronGeometry(1.2);
+      const tMat = new THREE.MeshBasicMaterial({ color: 0xffea00, wireframe: true });
+      mesh = new THREE.Mesh(tGeom, tMat);
+    } else if (cfg.id === 'rain' && Math.random() < 0.25) {
+      // Hydroplane puddle hazard
+      const pGeom = new THREE.CircleGeometry(2.2, 16);
+      const pMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, side: THREE.DoubleSide });
+      mesh = new THREE.Mesh(pGeom, pMat);
+      mesh.rotation.x = -Math.PI / 2;
+    } else if (cfg.id === 'orbital' && Math.random() < 0.3) {
+      // Zero-G floating space debris
+      const dGeom = new THREE.IcosahedronGeometry(1.4);
+      const dMat = new THREE.MeshBasicMaterial({ color: 0xb700ff, wireframe: true });
+      mesh = new THREE.Mesh(dGeom, dMat);
+      mesh.position.y = 1.8;
+    } else if (isHunter) {
       const hGeom = new THREE.BoxGeometry(2.0, 0.8, 3.8);
       const hMat = new THREE.MeshBasicMaterial({ color: 0xff7700, wireframe: true });
       mesh = new THREE.Mesh(hGeom, hMat);
@@ -452,7 +572,9 @@
       mesh = new THREE.Mesh(rGeom, rMat);
     }
 
-    mesh.position.set(x, 0.6, z);
+    if (!mesh.position.y) mesh.position.y = 0.6;
+    mesh.position.x = x;
+    mesh.position.z = z;
     scene.add(mesh);
     obstacles.push({ mesh, isHunter, isDestructible, speedOffset: isHunter ? 1.5 : rand(-0.5, 0.5) });
   }
@@ -508,6 +630,13 @@
 
     const cfg = Storage.getSettings();
     const mode = Storage.getSelectedMode();
+    const activeZoneId = Storage.getSelectedZone();
+
+    // Occasional Rain City Lightning Flashes
+    if (activeZoneId === 'rain' && Math.random() < 0.005) {
+      scene.background.setHex(0x354060);
+      setTimeout(() => scene.background.setHex(0x04040a), 60);
+    }
 
     if (time % 1600 === 0) {
       forkWarningTime = 120;

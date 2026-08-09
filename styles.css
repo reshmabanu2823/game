@@ -369,6 +369,53 @@ html, body {
   transform: scale(1.05);
 }
 
+/* Dynamic Zone HUD UI Reskinning Themes */
+
+/* 1. Neon District (Cyan / Magenta) */
+.hud-skin-district .hud-panel {
+  border-color: rgba(0, 243, 255, 0.4);
+  box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+}
+.hud-skin-district .hud-value { color: var(--cyan); text-shadow: 0 0 12px var(--cyan); }
+
+/* 2. Desert Overpass (Sun-bleached Amber / Orange) */
+.hud-skin-desert .hud-panel {
+  background: rgba(24, 14, 5, 0.82);
+  border-color: rgba(255, 230, 0, 0.5);
+  box-shadow: 0 0 20px rgba(255, 230, 0, 0.25);
+}
+.hud-skin-desert .hud-value { color: var(--yellow); text-shadow: 0 0 14px var(--yellow); }
+.hud-skin-desert .hud-label { color: #d4a559; }
+
+/* 3. Rain City (Deep Blue / Teal) */
+.hud-skin-rain .hud-panel {
+  background: rgba(4, 15, 35, 0.85);
+  border-color: rgba(0, 170, 255, 0.5);
+  box-shadow: 0 0 22px rgba(0, 170, 255, 0.3);
+}
+.hud-skin-rain .hud-value { color: #00aaff; text-shadow: 0 0 14px #00aaff; }
+.hud-skin-rain .hud-label { color: #6db6e3; }
+
+/* 4. Orbital Ring (Holographic White / Violet Glitch) */
+.hud-skin-orbital .hud-panel {
+  background: rgba(18, 5, 30, 0.88);
+  border-color: rgba(183, 0, 255, 0.5);
+  box-shadow: 0 0 24px rgba(183, 0, 255, 0.35);
+}
+.hud-skin-orbital .hud-value { color: #ffffff; text-shadow: 0 0 14px #b700ff; }
+.hud-skin-orbital .hud-label { color: #c48df0; }
+
+/* Zone Load Flicker Animation */
+.zone-flicker {
+  animation: zoneFlicker 0.4s ease;
+}
+
+@keyframes zoneFlicker {
+  0% { opacity: 0.2; transform: scale(0.98); }
+  50% { opacity: 1; filter: brightness(1.5); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
 /* Styled Text Input in High Score Modal */
 .cyber-input {
   width: 100%;
@@ -733,7 +780,7 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
 
 .cyber-btn:hover { background: var(--cyan); color: #040509; box-shadow: 0 0 35px var(--cyan); transform: scale(1.05); }
 
-/* HUD Top Layer (Positioned cleanly 100px from top, completely clear of navigation header!) */
+/* HUD Top Layer (Positioned cleanly 98px from top, completely clear of navigation header!) */
 #ui-container {
   position: absolute;
   top: 98px;
